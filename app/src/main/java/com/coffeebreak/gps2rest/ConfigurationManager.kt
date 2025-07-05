@@ -16,18 +16,35 @@ class ConfigurationManager(context: Context) {
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
     }
     
-    fun saveGpsUrl(url: String) {
-        if (isValidUrl(url)) {
+    fun saveGpsUrl(url: String): Boolean {
+        val normalizedUrl = normalizeUrl(url)
+        return if (isValidUrl(normalizedUrl)) {
             sharedPreferences.edit()
-                .putString(KEY_GPS_URL, url)
+                .putString(KEY_GPS_URL, normalizedUrl)
                 .apply()
+            true
+        } else {
+            false
+        }
+    }
+    
+    private fun normalizeUrl(url: String): String {
+        val trimmed = url.trim()
+        
+        // If URL doesn't start with http:// or https://, assume http://
+        return if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+            "http://$trimmed"
+        } else {
+            trimmed
         }
     }
     
     private fun isValidUrl(url: String): Boolean {
         return try {
             val urlObj = java.net.URL(url)
-            urlObj.protocol in listOf("http", "https") && !url.startsWith("/")
+            urlObj.protocol in listOf("http", "https") && 
+            !url.startsWith("/") &&
+            urlObj.host.isNotEmpty()
         } catch (e: Exception) {
             false
         }
@@ -35,6 +52,10 @@ class ConfigurationManager(context: Context) {
     
     fun getGpsUrl(): String {
         return sharedPreferences.getString(KEY_GPS_URL, DEFAULT_GPS_URL) ?: DEFAULT_GPS_URL
+    }
+    
+    fun getCurrentSavedUrl(): String {
+        return sharedPreferences.getString(KEY_GPS_URL, null) ?: "No URL saved (using default)"
     }
     
     fun saveFrequencySeconds(frequencySeconds: Int) {

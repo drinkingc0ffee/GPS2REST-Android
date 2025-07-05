@@ -48,6 +48,12 @@ class ConfigurationActivity : AppCompatActivity() {
     private fun loadCurrentConfiguration() {
         val currentUrl = configManager.getGpsUrl()
         urlEditText.setText(currentUrl)
+        
+        // Show current configuration status
+        val savedUrl = configManager.getCurrentSavedUrl()
+        if (savedUrl != "No URL saved (using default)") {
+            Toast.makeText(this, "Current URL: $savedUrl", Toast.LENGTH_SHORT).show()
+        }
     }
     
     private fun saveConfiguration() {
@@ -58,22 +64,11 @@ class ConfigurationActivity : AppCompatActivity() {
             return
         }
 
-        if (!isValidUrl(url)) {
-            Toast.makeText(this, getString(R.string.invalid_url), Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        configManager.saveGpsUrl(url)
-        Toast.makeText(this, "Configuration saved", Toast.LENGTH_SHORT).show()
-        finish()
-    }
-
-    private fun isValidUrl(url: String): Boolean {
-        return try {
-            val urlObj = java.net.URL(url)
-            urlObj.protocol in listOf("http", "https") && !url.startsWith("/")
-        } catch (e: Exception) {
-            false
+        if (configManager.saveGpsUrl(url)) {
+            Toast.makeText(this, "Configuration saved successfully", Toast.LENGTH_SHORT).show()
+            finish()
+        } else {
+            Toast.makeText(this, "Invalid URL. Please enter a valid URL like: http://192.168.1.1:8080/api/v1/gps", Toast.LENGTH_LONG).show()
         }
     }
     
