@@ -1,10 +1,10 @@
 <resources>
-    <string name="app_name">RayHunter GPS Source</string>
+    <string name="app_name">GPS2REST-Android</string>
     <string name="configure_button">Configure</string>
     <string name="exit_button">Exit</string>
     <string name="status_label">Status:</string>
     <string name="location_label">Location:</string>
-    <string name="url_label">RayHunter GPS Endpoint URL:</string>
+    <string name="url_label">GPS2REST Endpoint URL:</string>
     <string name="save_button">Save</string>
     <string name="cancel_button">Cancel</string>
     <string name="configuration_title">Configuration</string>
@@ -23,15 +23,15 @@
     <string name="location_permission_granted">Location permission granted! GPS tracking enabled.</string>
     <string name="notification_permission_granted">Notification permission granted! Background service notifications enabled.</string>
     <string name="background_location_granted">Background location permission granted! Continuous GPS tracking enabled.</string>
-    <string name="all_permissions_granted">All permissions granted! RayHunter GPS is ready to track your location.</string>
+    <string name="all_permissions_granted">All permissions granted! GPS2REST-Android is ready to track your location.</string>
     
     <!-- Permission rationale titles and messages -->
     <string name="location_permission_title">Location Permission Required</string>
-    <string name="location_permission_rationale">RayHunter GPS needs location access to track and send your GPS coordinates to the configured endpoint. This is essential for the app\'s core functionality.</string>
+    <string name="location_permission_rationale">GPS2REST-Android needs location access to track and send your GPS coordinates to the configured endpoint. This is essential for the app\'s core functionality.</string>
     <string name="notification_permission_title">Notification Permission Required</string>
-    <string name="notification_permission_rationale">RayHunter GPS needs notification permission to show you the GPS tracking status and keep the background service running properly.</string>
+    <string name="notification_permission_rationale">GPS2REST-Android needs notification permission to show you the GPS tracking status and keep the background service running properly.</string>
     <string name="background_location_title">Background Location Permission Required</string>
-    <string name="background_location_rationale">RayHunter GPS needs background location access to continuously track your GPS coordinates even when the app is not visible. Please select \'Allow all the time\' in the next screen for optimal functionality.</string>
+    <string name="background_location_rationale">GPS2REST-Android needs background location access to continuously track your GPS coordinates even when the app is not visible. Please select \'Allow all the time\' in the next screen for optimal functionality.</string>
     
     <!-- Permission denial messages -->
     <string name="location_permission_denied_message">Location permission is required for GPS tracking. The app cannot function without it.</string>

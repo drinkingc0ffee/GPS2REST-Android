@@ -1,2 +1,2 @@
-rootProject.name = "rayhunter-android-gps-source"
+rootProject.name = "GPS2REST-Android"
 include ':app'

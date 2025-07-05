@@ -1,7 +1,7 @@
-# RayHunter GPS Source - Usage Guide
+# GPS2REST-Android - Usage Guide
 
 ## Overview
-RayHunter GPS Source is an Android app that tracks GPS location at configurable intervals and sends the data to a REST endpoint.
+GPS2REST-Android is an Android app that tracks GPS location at configurable intervals and sends the data to a REST endpoint.
 
 ## Fixed Issues
 
@@ -68,10 +68,10 @@ GET http://your-server.com:8080/api/v1/gps/51.5074,-0.1278
 ## Current APK Location
 The built APK is located at:
 ```
-/Users/beisenmann/rayhunter-gps-android/app/build/outputs/apk/debug/app-debug.apk
+/Users/beisenmann/GPS2REST-Android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ## Package Name
 ```
-com.rayhunter.gpssource
+com.coffeebreak.gps2rest
 ```

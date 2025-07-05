@@ -1,4 +1,4 @@
-# RayHunter GPS Source - Fixed Issues Summary
+# GPS2REST-Android - Fixed Issues Summary
 
 ## ✅ Issue 1: Made Permission Requests Uniform
 
@@ -53,7 +53,7 @@ http://192.168.1.1:8080/api/v1/gps
 1. **Location Permission**: Uses consistent dialog → Shows "Location permission granted!" toast
 2. **Notification Permission**: Uses consistent dialog → Shows "Notification permission granted!" toast  
 3. **Background Location**: Uses consistent dialog → Shows "Background location permission granted!" toast
-4. **Final acknowledgment**: "All permissions granted! RayHunter GPS is ready to track your location."
+4. **Final acknowledgment**: "All permissions granted! GPS2REST-Android is ready to track your location."
 
 ### Configuration Access:
 1. **Via Button**: Tap "Configure" button on main screen
@@ -66,8 +66,8 @@ http://192.168.1.1:8080/api/v1/gps
 - **API Format**: `GET http://192.168.1.1:8080/api/v1/gps/<lat>,<lon>`
 
 ## Build Status: ✅ SUCCESS
-- **APK Location**: `/Users/beisenmann/rayhunter-gps-android/app/build/outputs/apk/debug/app-debug.apk`
-- **Package Name**: `com.rayhunter.gpssource`
+- **APK Location**: `/Users/beisenmann/GPS2REST-Android/app/build/outputs/apk/debug/app-debug.apk`
+- **Package Name**: `com.coffeebreak.gps2rest`
 - **All compilation errors fixed**
 - **Menu system working**
 - **Permission system uniform**
