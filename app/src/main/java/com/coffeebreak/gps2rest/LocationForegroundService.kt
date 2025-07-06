@@ -167,7 +167,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
     private fun updateNotification(location: Location) {
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GPS2REST Tracking")
-            .setContentText("Lat: ${String.format("%.6f", location.latitude)}, Lon: ${String.format("%.6f", location.longitude)}")
+            .setContentText("Lat: ${String.format(java.util.Locale.US, "%.6f", location.latitude)}, Lon: ${String.format(java.util.Locale.US, "%.6f", location.longitude)}")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .setSilent(true)

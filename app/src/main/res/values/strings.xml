@@ -1,56 +1,82 @@
 <resources>
     <string name="app_name">GPS2REST-Android</string>
+    <string name="main_activity_title">GPS2REST-Android</string>
+    <string name="configuration_activity_title">Configuration</string>
+    
+    <!-- Main Activity -->
+    <string name="start_button">Start GPS Tracking</string>
+    <string name="stop_button">Stop GPS Tracking</string>
     <string name="configure_button">Configure</string>
-    <string name="exit_button">Exit</string>
-    <string name="status_label">Status:</string>
-    <string name="location_label">Location:</string>
-    <string name="url_label">GPS2REST Endpoint URL:</string>
+    <string name="ready_status">Ready…</string>
+    <string name="frequency_label">Update Frequency:</string>
+    <string name="min_interval">10s</string>
+    <string name="max_interval">30m</string>
+    <string name="default_frequency">15 seconds</string>
+    
+    <!-- Configuration Activity -->
+    <string name="gps_url_label">GPS Endpoint URL:</string>
+    <string name="gps_url_hint">http://192.168.1.1:8080/api/v1/gps</string>
     <string name="save_button">Save</string>
-    <string name="cancel_button">Cancel</string>
-    <string name="configuration_title">Configuration</string>
-    <string name="permission_required">Location permission is required for this app to function</string>
-    <string name="grant_permission">Grant Permission</string>
-    <string name="location_unavailable">Location unavailable</string>
-    <string name="sending_gps_data">Sending GPS data...</string>
-    <string name="gps_data_sent">GPS data sent successfully</string>
-    <string name="error_sending_data">Error sending GPS data: %s</string>
-    <string name="network_error">Network error</string>
-    <string name="invalid_url">Invalid URL format</string>
+    <string name="test_button">Test</string>
+    
+    <!-- Frequency strings with plurals -->
+    <plurals name="frequency_seconds">
+        <item quantity="one">%d second</item>
+        <item quantity="other">%d seconds</item>
+    </plurals>
+    <plurals name="frequency_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    
+    <!-- Permissions -->
+    <string name="location_permission_granted">Location permission granted</string>
     <string name="location_permission_denied">Location permission denied</string>
-    <string name="frequency_label">GPS Update Frequency:</string>
+    <string name="location_permission_denied_message">Location permission is required for GPS tracking</string>
+    <string name="notification_permission_granted">Notification permission granted</string>
+    <string name="notification_permission_denied_message">Notification permission helps with background tracking</string>
+    <string name="background_location_granted">Background location permission granted</string>
+    <string name="background_location_denied_message">Background location permission is needed for continuous tracking</string>
+    <string name="all_permissions_granted">All permissions granted - GPS tracking ready!</string>
+    
+    <!-- Battery Optimization -->
+    <string name="battery_optimization_title">Battery Optimization</string>
+    <string name="battery_optimization_message">For continuous GPS tracking, please disable battery optimization for this app</string>
+    <string name="settings_button">Settings</string>
+    <string name="skip_button">Skip</string>
+    <string name="battery_settings_error">Could not open battery settings</string>
+    
+    <!-- Menu -->
+    <string name="menu_configure">Configure</string>
+    <string name="menu_about">About</string>
+    <string name="menu_exit">Exit</string>
+    
+    <!-- Configuration Messages -->
+    <string name="configuration_saved">Configuration saved successfully</string>
+    <string name="test_successful">Test successful!</string>
+    <string name="test_failed">Test failed: %s</string>
+    <string name="url_validation_error">Please enter a valid URL</string>
+    <string name="current_config_url">Current URL: %s</string>
+    <string name="current_config_frequency">Current frequency: %d seconds</string>
+    
+    <!-- Common -->
+    <string name="ok_button">OK</string>
+    <string name="cancel_button">Cancel</string>
+    
+    <!-- Additional strings for layouts -->
+    <string name="location_label">Location:</string>
+    <string name="location_unavailable">Location unavailable</string>
+    <string name="status_label">Status:</string>
+    <string name="exit_button">Exit</string>
+    
+    <!-- Missing string resources used by MainActivity -->
     <string name="frequency_seconds">%d seconds</string>
     <string name="frequency_minutes">%d minutes</string>
-    <string name="location_permission_granted">Location permission granted! GPS tracking enabled.</string>
-    <string name="notification_permission_granted">Notification permission granted! Background service notifications enabled.</string>
-    <string name="background_location_granted">Background location permission granted! Continuous GPS tracking enabled.</string>
-    <string name="all_permissions_granted">All permissions granted! GPS2REST-Android is ready to track your location.</string>
-    
-    <!-- Permission rationale titles and messages -->
     <string name="location_permission_title">Location Permission Required</string>
     <string name="location_permission_rationale">GPS2REST-Android needs location access to track and send your GPS coordinates to the configured endpoint. This is essential for the app\'s core functionality.</string>
     <string name="notification_permission_title">Notification Permission Required</string>
     <string name="notification_permission_rationale">GPS2REST-Android needs notification permission to show you the GPS tracking status and keep the background service running properly.</string>
     <string name="background_location_title">Background Location Permission Required</string>
     <string name="background_location_rationale">GPS2REST-Android needs background location access to continuously track your GPS coordinates even when the app is not visible. Please select \'Allow all the time\' in the next screen for optimal functionality.</string>
-    
-    <!-- Permission denial messages -->
-    <string name="location_permission_denied_message">Location permission is required for GPS tracking. The app cannot function without it.</string>
-    <string name="notification_permission_denied_message">Notification permission denied. Background service notifications will be limited.</string>
-    <string name="background_location_denied_message">Background location denied. GPS tracking will only work when app is open.</string>
-    
-    <!-- Battery optimization -->
-    <string name="battery_optimization_title">Battery Optimization</string>
-    <string name="battery_optimization_message">To ensure continuous GPS tracking, please disable battery optimization for this app.</string>
-    <string name="battery_settings_error">Could not open battery settings</string>
-    
-    <!-- Common dialog buttons -->
     <string name="grant_permission_button">Grant Permission</string>
-    <string name="settings_button">Settings</string>
-    <string name="skip_button">Skip</string>
-    <string name="ok_button">OK</string>
-    
-    <!-- Menu items -->
-    <string name="menu_configure">Configure</string>
-    <string name="menu_about">About</string>
-    <string name="menu_exit">Exit</string>
 </resources>

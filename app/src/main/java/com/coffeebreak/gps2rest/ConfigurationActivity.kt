@@ -12,7 +12,7 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var configManager: ConfigurationManager
     private lateinit var urlEditText: EditText
     private lateinit var saveButton: Button
-    private lateinit var cancelButton: Button
+    private lateinit var testButton: Button
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,12 +26,12 @@ class ConfigurationActivity : AppCompatActivity() {
     }
     
     private fun initViews() {
-        urlEditText = findViewById(R.id.urlEditText)
+        urlEditText = findViewById(R.id.gpsUrlEditText)
         saveButton = findViewById(R.id.saveButton)
-        cancelButton = findViewById(R.id.cancelButton)
+        testButton = findViewById(R.id.testButton)
         
         // Set up action bar
-        supportActionBar?.title = getString(R.string.configuration_title)
+        supportActionBar?.title = getString(R.string.configuration_activity_title)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
     
@@ -40,8 +40,8 @@ class ConfigurationActivity : AppCompatActivity() {
             saveConfiguration()
         }
         
-        cancelButton.setOnClickListener {
-            finish()
+        testButton.setOnClickListener {
+            testConfiguration()
         }
     }
     
@@ -60,15 +60,32 @@ class ConfigurationActivity : AppCompatActivity() {
         val url = urlEditText.text.toString().trim()
 
         if (url.isEmpty()) {
-            Toast.makeText(this, "URL cannot be empty", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
             return
         }
 
         if (configManager.saveGpsUrl(url)) {
-            Toast.makeText(this, "Configuration saved successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.configuration_saved), Toast.LENGTH_SHORT).show()
             finish()
         } else {
-            Toast.makeText(this, "Invalid URL. Please enter a valid URL like: http://192.168.1.1:8080/api/v1/gps", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    private fun testConfiguration() {
+        val url = urlEditText.text.toString().trim()
+        
+        if (url.isEmpty()) {
+            Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        // Simple URL validation test
+        try {
+            java.net.URL(url)
+            Toast.makeText(this, getString(R.string.test_successful), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.test_failed, e.message), Toast.LENGTH_LONG).show()
         }
     }
     

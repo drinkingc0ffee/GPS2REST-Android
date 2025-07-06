@@ -11,51 +11,51 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/configuration_title"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:layout_marginBottom="32dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/url_label"
+        android:text="@string/gps_url_label"
         android:textSize="16sp"
+        android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
-    <EditText
-        android:id="@+id/urlEditText"
+    <TextView
+        android:id="@+id/currentConfigText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="textUri"
-        android:hint="http://192.168.1.1:8080/api/v1/gps"
-        android:layout_marginBottom="32dp"
-        android:padding="12dp"
-        android:background="@android:drawable/edit_text" />
+        android:layout_marginBottom="16dp"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray" />
 
+    <EditText
+        android:id="@+id/gpsUrlEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/gps_url_hint"
+        android:inputType="textUri"
+        android:autofillHints="url"
+        android:importantForAutofill="yes"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Button container with buttonBarStyle -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center">
+        android:gravity="end"
+        style="?android:attr/buttonBarStyle">
 
         <Button
-            android:id="@+id/cancelButton"
-            android:layout_width="0dp"
+            android:id="@+id/testButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/cancel_button"
+            android:text="@string/test_button"
             android:layout_marginEnd="8dp"
-            android:backgroundTint="@color/gray" />
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/saveButton"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="@string/save_button"
-            android:layout_marginStart="8dp" />
+            style="?android:attr/buttonBarButtonStyle" />
 
     </LinearLayout>
 

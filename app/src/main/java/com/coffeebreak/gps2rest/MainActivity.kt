@@ -402,9 +402,9 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     }
     
     private fun updateLocationDisplay(location: Location) {
-        val locationString = "Lat: ${String.format("%.6f", location.latitude)}, " +
-                "Lon: ${String.format("%.6f", location.longitude)}\n" +
-                "Accuracy: ${String.format("%.1f", location.accuracy)}m"
+        val locationString = "Lat: ${String.format(java.util.Locale.US, "%.6f", location.latitude)}, " +
+                "Lon: ${String.format(java.util.Locale.US, "%.6f", location.longitude)}\n" +
+                "Accuracy: ${String.format(java.util.Locale.US, "%.1f", location.accuracy)}m"
         locationText.text = locationString
     }
     
