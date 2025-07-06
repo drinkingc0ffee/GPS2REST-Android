@@ -8,3 +8,63 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Log files
+*.log
+
+# Android build artifacts
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+
+# Additional Android build directories
+/app/build/
+/build/
+*/build/
+
+# ProGuard generated files
+proguard/
+
+# Lint
+lint-report.html
+lint-report_files/
+lint-baseline.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Freeline
+freeline.py
+freeline/
+freeline_project_description.json
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Version control
+.svn/
+
+# Backup files
+*~
+*.bak
+*.tmp
+*.orig
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
