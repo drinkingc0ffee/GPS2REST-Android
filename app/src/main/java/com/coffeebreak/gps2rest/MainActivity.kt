@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Button
@@ -36,23 +37,23 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var gpsService: GpsService
     private lateinit var configManager: ConfigurationManager
+    private lateinit var permissionManager: PermissionManager
     
     private var currentLocation: Location? = null
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
-        private const val BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1002
-        private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1003
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         
+        permissionManager = PermissionManager(this)
         initViews()
-        initServices()
+        initBasicServices()
         setupClickListeners()
-        checkLocationPermission()
+        checkAndRequestPermissions()
     }
     
     private fun initViews() {
@@ -64,18 +65,23 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         frequencyText = findViewById(R.id.frequencyText)
     }
     
-    private fun initServices() {
+    private fun initBasicServices() {
+        // Only initialize non-location services here
+        configManager = ConfigurationManager(this)
+        
+        // Initialize frequency slider
+        setupFrequencySlider()
+    }
+    
+    private fun initLocationServices() {
+        // Initialize location-related services only after permissions are granted
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         gpsService = GpsService(this)
-        configManager = ConfigurationManager(this)
         
         // Observe status messages
         gpsService.statusMessages.observe(this) { messages ->
             statusText.text = messages.joinToString("\n")
         }
-        
-        // Initialize frequency slider
-        setupFrequencySlider()
     }
     
     private fun setupClickListeners() {
@@ -166,151 +172,47 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         }
     }
     
-    private fun checkLocationPermission() {
-        when {
-            // Check if we have fine location permission
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED -> {
-                requestLocationPermission()
-            }
-            
-            // Check notification permission (Android 13+)
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED -> {
-                requestNotificationPermission()
-            }
-            
-            // Check background location permission (Android 10+)
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED -> {
-                requestBackgroundLocationPermission()
-            }
-            
-            else -> {
-                startLocationUpdates()
-                promptBatteryOptimization()
-            }
-        }
-    }
-    
-    private fun requestLocationPermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            showUniformPermissionDialog(
-                title = getString(R.string.location_permission_title),
-                message = getString(R.string.location_permission_rationale),
-                permissions = arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                requestCode = LOCATION_PERMISSION_REQUEST_CODE
-            )
+    private fun checkAndRequestPermissions() {
+        val basicLocationPermissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        
+        Log.d("MainActivity", "Checking basic location permissions")
+        
+        if (permissionManager.arePermissionsGranted(basicLocationPermissions)) {
+            Log.d("MainActivity", "All permissions already granted")
+            initLocationServices()
+            startLocationUpdates()
         } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ),
-                LOCATION_PERMISSION_REQUEST_CODE
-            )
+            Log.d("MainActivity", "Showing permission explanation dialog")
+            showPermissionExplanationDialog()
         }
     }
     
-    private fun requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-                showUniformPermissionDialog(
-                    title = getString(R.string.notification_permission_title),
-                    message = getString(R.string.notification_permission_rationale),
-                    permissions = arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    requestCode = NOTIFICATION_PERMISSION_REQUEST_CODE
-                )
-            } else {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    NOTIFICATION_PERMISSION_REQUEST_CODE
-                )
-            }
-        }
-    }
-    
-    private fun requestBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                showUniformPermissionDialog(
-                    title = getString(R.string.background_location_title),
-                    message = getString(R.string.background_location_rationale),
-                    permissions = arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                    requestCode = BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE
-                )
-            } else {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                    BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE
-                )
-            }
-        }
-    }
-    
-    private fun showUniformPermissionDialog(
-        title: String,
-        message: String,
-        permissions: Array<String>,
-        requestCode: Int
-    ) {
+    private fun showPermissionExplanationDialog() {
         AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton(getString(R.string.grant_permission_button)) { _, _ ->
-                ActivityCompat.requestPermissions(this, permissions, requestCode)
+            .setTitle("📍 Location Permission Required")
+            .setMessage("GPS2REST needs access to your device's location to track and send GPS coordinates to your configured endpoint.\n\nThis permission is essential for the app to function.")
+            .setPositiveButton("Grant Permission") { _, _ ->
+                Log.d("MainActivity", "User agreed to grant permissions")
+                requestBasicLocationPermissions()
             }
-            .setNegativeButton(getString(R.string.cancel_button)) { _, _ ->
-                showUniformDenialToast(requestCode)
+            .setNegativeButton("Exit") { _, _ ->
+                Log.d("MainActivity", "User declined permissions")
+                finish()
             }
             .setCancelable(false)
             .show()
     }
     
-    private fun showUniformDenialToast(requestCode: Int) {
-        val message = when (requestCode) {
-            LOCATION_PERMISSION_REQUEST_CODE -> getString(R.string.location_permission_denied_message)
-            NOTIFICATION_PERMISSION_REQUEST_CODE -> getString(R.string.notification_permission_denied_message)
-            BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE -> getString(R.string.background_location_denied_message)
-            else -> getString(R.string.location_permission_denied)
-        }
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
-    }
-    
-    private fun promptBatteryOptimization() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                data = Uri.parse("package:$packageName")
-            }
-            if (intent.resolveActivity(packageManager) != null) {
-                AlertDialog.Builder(this)
-                    .setTitle(getString(R.string.battery_optimization_title))
-                    .setMessage(getString(R.string.battery_optimization_message))
-                    .setPositiveButton(getString(R.string.settings_button)) { _, _ ->
-                        try {
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(this, getString(R.string.battery_settings_error), Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                    .setNegativeButton(getString(R.string.skip_button)) { _, _ -> }
-                    .show()
-            }
-        }
+    private fun requestBasicLocationPermissions() {
+        val basicLocationPermissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        Log.d("MainActivity", "Requesting basic location permissions")
+        permissionManager.requestMissingPermissions(basicLocationPermissions, LOCATION_PERMISSION_REQUEST_CODE)
     }
     
     override fun onRequestPermissionsResult(
@@ -320,49 +222,48 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         
-        val isGranted = grantResults.isNotEmpty() && 
-                       grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        Log.d("MainActivity", "Permission result received for request code: $requestCode")
         
         when (requestCode) {
             LOCATION_PERMISSION_REQUEST_CODE -> {
-                if (isGranted) {
-                    Toast.makeText(this, getString(R.string.location_permission_granted), Toast.LENGTH_SHORT).show()
-                    checkLocationPermission() // Continue to next permission
-                } else {
-                    Toast.makeText(this, getString(R.string.location_permission_denied_message), Toast.LENGTH_LONG).show()
-                    // App cannot function without location
-                }
-            }
-            
-            NOTIFICATION_PERMISSION_REQUEST_CODE -> {
-                if (isGranted) {
-                    Toast.makeText(this, getString(R.string.notification_permission_granted), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(this, getString(R.string.notification_permission_denied_message), Toast.LENGTH_SHORT).show()
-                }
-                checkLocationPermission() // Continue to next permission regardless
-            }
-            
-            BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE -> {
-                if (isGranted) {
-                    Toast.makeText(this, getString(R.string.background_location_granted), Toast.LENGTH_SHORT).show()
-                    startLocationUpdates()
-                    promptBatteryOptimization()
-                    
-                    // Final acknowledgment that everything is ready
-                    Handler(mainLooper).postDelayed({
-                        Toast.makeText(
-                            this,
-                            getString(R.string.all_permissions_granted),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }, 1000)
-                } else {
-                    Toast.makeText(this, getString(R.string.background_location_denied_message), Toast.LENGTH_SHORT).show()
-                    startLocationUpdates() // Start anyway but limited functionality
-                }
+                permissionManager.handlePermissionsResult(
+                    requestCode,
+                    permissions,
+                    grantResults,
+                    onPermissionsGranted = {
+                        Log.d("MainActivity", "Location permissions granted")
+                        initLocationServices()
+                        startLocationUpdates()
+                        Toast.makeText(this, "✅ Location permission granted! App is ready.", Toast.LENGTH_SHORT).show()
+                    },
+                    onPermissionsDenied = {
+                        Log.d("MainActivity", "Location permissions denied")
+                        showPermissionDeniedDialog()
+                    }
+                )
             }
         }
+    }
+    
+    private fun showPermissionDeniedDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("❌ Permission Required")
+            .setMessage("GPS2REST cannot function without location permission.\n\nPlease grant location permission in your device settings or restart the app to try again.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                try {
+                    val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    intent.data = Uri.parse("package:$packageName")
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Please enable location permission in Settings", Toast.LENGTH_LONG).show()
+                }
+                finish()
+            }
+            .setNegativeButton("Exit App") { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
     }
     
     private fun startLocationUpdates() {

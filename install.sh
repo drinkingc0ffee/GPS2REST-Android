@@ -113,14 +113,14 @@ if [ "$CLEAR_LOGS" = true ]; then
 fi
 
 if [ "$UNINSTALL_APP" = true ]; then
-    echo -e "\033[0;32m========================\nUninstalling WiFiTracker\n========================\n\033[m"
-    run_adb shell pm uninstall com.aibf.wifitracker
+    echo -e "\033[0;32m========================\nUninstalling GPS2REST\n========================\n\033[m"
+    run_adb shell pm uninstall com.coffeebreak.gps2rest
     echo "App uninstalled successfully"
     echo ""
 fi
 
 if [ "$INSTALL_APP" = true ]; then
-    echo -e "\033[0;32m========================\nInstalling WiFiTracker\n========================\n\033[m"
+    echo -e "\033[0;32m========================\nInstalling GPS2REST\n========================\n\033[m"
     if [ -f "./app/build/outputs/apk/debug/app-debug.apk" ]; then
         run_adb install -r ./app/build/outputs/apk/debug/app-debug.apk
         echo "App installed successfully"
