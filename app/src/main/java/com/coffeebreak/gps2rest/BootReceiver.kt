@@ -16,13 +16,13 @@ class BootReceiver : BroadcastReceiver() {
                 
                 // Check if the app was configured to run on boot
                 val configManager = ConfigurationManager(context)
-                if (configManager.shouldStartOnBoot()) {
+                if (configManager.shouldStartOnBoot() && !configManager.isExiting()) {
                     Log.d("BootReceiver", "Starting location service on boot")
                     
                     // Start the location service
                     LocationForegroundService.startService(context)
                 } else {
-                    Log.d("BootReceiver", "Service not configured to start on boot")
+                    Log.d("BootReceiver", "Service not configured to start on boot or app is exiting")
                 }
             }
         }

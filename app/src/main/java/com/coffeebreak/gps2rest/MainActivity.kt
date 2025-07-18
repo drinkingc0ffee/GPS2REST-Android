@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
-        private const val BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1002
         private const val BATTERY_OPTIMIZATION_REQUEST_CODE = 1003
     }
     
@@ -53,9 +52,18 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         setContentView(R.layout.activity_main)
         
         permissionManager = PermissionManager(this)
+        configManager = ConfigurationManager(this)
+        
+        // Reset exiting flag when app starts normally
+        configManager.setExiting(false)
+        
         initViews()
         initBasicServices()
         setupClickListeners()
+        
+        // Show initial status display with static info only
+        showInitialStatusDisplay()
+        
         checkAndRequestPermissions()
     }
     
@@ -83,7 +91,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         
         // Observe status messages
         gpsService.statusMessages.observe(this) { messages ->
-            statusText.text = messages.joinToString("\n")
+            updateStatusDisplay(messages)
         }
     }
     
@@ -130,6 +138,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 val frequency = progressToFrequency(seekBar?.progress ?: 0)
                 configManager.saveFrequencySeconds(frequency)
+                refreshStatusDisplay()
                 restartGpsService()
             }
         })
@@ -172,70 +181,29 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         ) {
             gpsService.stopGpsUpdates()
             gpsService.startGpsUpdates(this)
+            refreshStatusDisplay()
         }
     }
     
     private fun checkAndRequestPermissions() {
-        val basicLocationPermissions = arrayOf(
+        val locationPermissions = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
         
-        Log.d("MainActivity", "Checking basic location permissions")
+        Log.d("MainActivity", "Checking location permissions")
         
-        if (permissionManager.arePermissionsGranted(basicLocationPermissions)) {
-            Log.d("MainActivity", "All basic permissions already granted")
+        if (permissionManager.arePermissionsGranted(locationPermissions)) {
+            Log.d("MainActivity", "All location permissions already granted")
             initLocationServices()
-            checkBackgroundLocationPermission()
+            checkBatteryOptimization()
         } else {
             Log.d("MainActivity", "Showing permission explanation dialog")
             showPermissionExplanationDialog()
         }
     }
     
-    private fun checkBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                Log.d("MainActivity", "Background location permission not granted")
-                showBackgroundLocationPermissionDialog()
-            } else {
-                Log.d("MainActivity", "Background location permission already granted")
-                checkBatteryOptimization()
-            }
-        } else {
-            // Android 9 and below don't need background location permission
-            checkBatteryOptimization()
-        }
-    }
-    
-    private fun showBackgroundLocationPermissionDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("🔄 Background Location Permission")
-            .setMessage("For reliable background GPS tracking, GPS2REST needs background location permission.\n\nThis allows the app to continue tracking your location even when the app is not in the foreground.")
-            .setPositiveButton("Grant Permission") { _, _ ->
-                Log.d("MainActivity", "User agreed to grant background location permission")
-                requestBackgroundLocationPermission()
-            }
-            .setNegativeButton("Skip") { _, _ ->
-                Log.d("MainActivity", "User skipped background location permission")
-                checkBatteryOptimization()
-            }
-            .setCancelable(false)
-            .show()
-    }
-    
-    private fun requestBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissionManager.requestMissingPermissions(
-                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE
-            )
-        }
-    }
+
     
     private fun checkBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -302,12 +270,12 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     }
     
     private fun requestBasicLocationPermissions() {
-        val basicLocationPermissions = arrayOf(
+        val locationPermissions = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
-        Log.d("MainActivity", "Requesting basic location permissions")
-        permissionManager.requestMissingPermissions(basicLocationPermissions, LOCATION_PERMISSION_REQUEST_CODE)
+        Log.d("MainActivity", "Requesting location permissions")
+        permissionManager.requestMissingPermissions(locationPermissions, LOCATION_PERMISSION_REQUEST_CODE)
     }
     
     override fun onRequestPermissionsResult(
@@ -328,29 +296,12 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                     onPermissionsGranted = {
                         Log.d("MainActivity", "Location permissions granted")
                         initLocationServices()
-                        checkBackgroundLocationPermission()
+                        checkBatteryOptimization()
                         Toast.makeText(this, "✅ Location permission granted! App is ready.", Toast.LENGTH_SHORT).show()
                     },
                     onPermissionsDenied = {
                         Log.d("MainActivity", "Location permissions denied")
                         showPermissionDeniedDialog()
-                    }
-                )
-            }
-            BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE -> {
-                permissionManager.handlePermissionsResult(
-                    requestCode,
-                    permissions,
-                    grantResults,
-                    onPermissionsGranted = {
-                        Log.d("MainActivity", "Background location permission granted")
-                        Toast.makeText(this, "✅ Background location permission granted!", Toast.LENGTH_SHORT).show()
-                        checkBatteryOptimization()
-                    },
-                    onPermissionsDenied = {
-                        Log.d("MainActivity", "Background location permission denied")
-                        Toast.makeText(this, "⚠️ Background location permission denied. App may not work reliably in background.", Toast.LENGTH_LONG).show()
-                        checkBatteryOptimization()
                     }
                 )
             }
@@ -441,6 +392,45 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         locationText.text = locationString
     }
     
+    private fun updateStatusDisplay(dynamicMessages: List<String>) {
+        val staticLines = listOf(
+            "GPS2REST Status Monitor",
+            "=====================",
+            "Endpoint: ${configManager.getGpsUrl()}",
+            "Frequency: ${configManager.getFrequencySeconds()} seconds",
+            "Service: ${if (configManager.isServiceRunning()) "Running" else "Stopped"}",
+            "",
+            "Recent Activity:"
+        )
+        
+        val allLines = staticLines + dynamicMessages
+        statusText.text = allLines.joinToString("\n")
+    }
+    
+    private fun showInitialStatusDisplay() {
+        val staticLines = listOf(
+            "GPS2REST Status Monitor",
+            "=====================",
+            "Endpoint: ${configManager.getGpsUrl()}",
+            "Frequency: ${configManager.getFrequencySeconds()} seconds",
+            "Service: Stopped",
+            "",
+            "Recent Activity:",
+            "Initializing..."
+        )
+        statusText.text = staticLines.joinToString("\n")
+    }
+    
+    private fun refreshStatusDisplay() {
+        // Get current dynamic messages and update display
+        val currentMessages = if (::gpsService.isInitialized) {
+            gpsService.statusMessages.value ?: emptyList()
+        } else {
+            emptyList()
+        }
+        updateStatusDisplay(currentMessages)
+    }
+    
     override suspend fun getCurrentLocation(): Location? {
         return if (ActivityCompat.checkSelfPermission(
                 this,
@@ -499,6 +489,11 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     
     private fun exitApplication() {
         try {
+            Log.d("MainActivity", "Starting application exit process")
+            
+            // Mark that we're exiting to prevent service restart
+            configManager.setExiting(true)
+            
             // Stop GPS service
             gpsService.stopGpsUpdates()
             
@@ -511,10 +506,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
             // Show exit message
             Toast.makeText(this, "GPS2REST stopped. Exiting...", Toast.LENGTH_SHORT).show()
             
-            // Finish the activity
-            finish()
-            
-            // Force exit the app (for older Android versions)
+            // Force stop the app completely
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 finishAndRemoveTask()
             } else {
@@ -522,10 +514,14 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                 finish()
             }
             
+            // Force exit the process
+            android.os.Process.killProcess(android.os.Process.myPid())
+            
         } catch (e: Exception) {
             Log.e("MainActivity", "Error during exit", e)
             // Force finish even if there's an error
             finish()
+            android.os.Process.killProcess(android.os.Process.myPid())
         }
     }
 
@@ -541,10 +537,34 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
             .show()
     }
     
+    override fun onResume() {
+        super.onResume()
+        // Refresh status display when returning from configuration
+        if (::gpsService.isInitialized) {
+            refreshStatusDisplay()
+        } else {
+            showInitialStatusDisplay()
+        }
+    }
+    
     override fun onDestroy() {
         super.onDestroy()
-        gpsService.stopGpsUpdates()
-        LocationForegroundService.stopService(this)
+        try {
+            // Stop GPS service
+            gpsService.stopGpsUpdates()
+            
+            // Stop foreground service
+            LocationForegroundService.stopService(this)
+            
+            // Remove location updates from fused location client
+            if (::fusedLocationClient.isInitialized) {
+                fusedLocationClient.removeLocationUpdates { }
+            }
+            
+            Log.d("MainActivity", "Activity destroyed and services stopped")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in onDestroy", e)
+        }
     }
     
     @Deprecated("Deprecated in API level 33")

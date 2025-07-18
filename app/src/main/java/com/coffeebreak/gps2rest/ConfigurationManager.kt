@@ -15,6 +15,7 @@ class ConfigurationManager(context: Context) {
         private const val KEY_START_ON_BOOT = "start_on_boot"
         private const val KEY_SERVICE_RUNNING = "service_running"
         private const val KEY_BATTERY_OPTIMIZATION_REQUESTED = "battery_optimization_requested"
+        private const val KEY_EXITING = "exiting"
         private const val DEFAULT_GPS_URL = "http://192.168.1.1:8080/api/v1/gps"
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
     }
@@ -99,5 +100,15 @@ class ConfigurationManager(context: Context) {
     
     fun isBatteryOptimizationRequested(): Boolean {
         return sharedPreferences.getBoolean(KEY_BATTERY_OPTIMIZATION_REQUESTED, false)
+    }
+    
+    fun setExiting(exiting: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_EXITING, exiting)
+            .apply()
+    }
+    
+    fun isExiting(): Boolean {
+        return sharedPreferences.getBoolean(KEY_EXITING, false)
     }
 }

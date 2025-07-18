@@ -13,6 +13,7 @@ import android.net.NetworkRequest
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -78,13 +79,20 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Check if the app is exiting
+        if (configManager.isExiting()) {
+            Log.d("LocationForegroundService", "App is exiting, stopping service")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
         
         // Start GPS service
         gpsService.startGpsUpdates(this)
         
-        return START_STICKY // Restart service if killed
+        return START_NOT_STICKY // Don't restart service if killed
     }
     
     override fun onBind(intent: Intent?): IBinder? = null
