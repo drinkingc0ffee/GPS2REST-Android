@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Menu
@@ -43,6 +44,8 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
+        private const val BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1002
+        private const val BATTERY_OPTIMIZATION_REQUEST_CODE = 1003
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         }
         
         exitButton.setOnClickListener {
-            exitApplication()
+            showExitConfirmationDialog()
         }
     }
     
@@ -181,12 +184,104 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         Log.d("MainActivity", "Checking basic location permissions")
         
         if (permissionManager.arePermissionsGranted(basicLocationPermissions)) {
-            Log.d("MainActivity", "All permissions already granted")
+            Log.d("MainActivity", "All basic permissions already granted")
             initLocationServices()
-            startLocationUpdates()
+            checkBackgroundLocationPermission()
         } else {
             Log.d("MainActivity", "Showing permission explanation dialog")
             showPermissionExplanationDialog()
+        }
+    }
+    
+    private fun checkBackgroundLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Log.d("MainActivity", "Background location permission not granted")
+                showBackgroundLocationPermissionDialog()
+            } else {
+                Log.d("MainActivity", "Background location permission already granted")
+                checkBatteryOptimization()
+            }
+        } else {
+            // Android 9 and below don't need background location permission
+            checkBatteryOptimization()
+        }
+    }
+    
+    private fun showBackgroundLocationPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("🔄 Background Location Permission")
+            .setMessage("For reliable background GPS tracking, GPS2REST needs background location permission.\n\nThis allows the app to continue tracking your location even when the app is not in the foreground.")
+            .setPositiveButton("Grant Permission") { _, _ ->
+                Log.d("MainActivity", "User agreed to grant background location permission")
+                requestBackgroundLocationPermission()
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                Log.d("MainActivity", "User skipped background location permission")
+                checkBatteryOptimization()
+            }
+            .setCancelable(false)
+            .show()
+    }
+    
+    private fun requestBackgroundLocationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            permissionManager.requestMissingPermissions(
+                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
+                BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE
+            )
+        }
+    }
+    
+    private fun checkBatteryOptimization() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+            val packageName = packageName
+            
+            if (!powerManager.isIgnoringBatteryOptimizations(packageName) && 
+                !configManager.isBatteryOptimizationRequested()) {
+                Log.d("MainActivity", "Battery optimization not disabled")
+                showBatteryOptimizationDialog()
+            } else {
+                Log.d("MainActivity", "Battery optimization already disabled or requested")
+                startLocationUpdates()
+            }
+        } else {
+            startLocationUpdates()
+        }
+    }
+    
+    private fun showBatteryOptimizationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("🔋 Battery Optimization")
+            .setMessage("For reliable background operation, GPS2REST needs to be excluded from battery optimization.\n\nThis prevents the system from killing the GPS tracking service to save battery.")
+            .setPositiveButton("Disable Optimization") { _, _ ->
+                Log.d("MainActivity", "User agreed to disable battery optimization")
+                requestBatteryOptimizationExemption()
+            }
+            .setNegativeButton("Skip") { _, _ ->
+                Log.d("MainActivity", "User skipped battery optimization exemption")
+                startLocationUpdates()
+            }
+            .setCancelable(false)
+            .show()
+    }
+    
+    private fun requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                intent.data = Uri.parse("package:$packageName")
+                startActivityForResult(intent, BATTERY_OPTIMIZATION_REQUEST_CODE)
+                configManager.setBatteryOptimizationRequested(true)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error requesting battery optimization exemption", e)
+                startLocationUpdates()
+            }
         }
     }
     
@@ -233,7 +328,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                     onPermissionsGranted = {
                         Log.d("MainActivity", "Location permissions granted")
                         initLocationServices()
-                        startLocationUpdates()
+                        checkBackgroundLocationPermission()
                         Toast.makeText(this, "✅ Location permission granted! App is ready.", Toast.LENGTH_SHORT).show()
                     },
                     onPermissionsDenied = {
@@ -241,6 +336,43 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                         showPermissionDeniedDialog()
                     }
                 )
+            }
+            BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE -> {
+                permissionManager.handlePermissionsResult(
+                    requestCode,
+                    permissions,
+                    grantResults,
+                    onPermissionsGranted = {
+                        Log.d("MainActivity", "Background location permission granted")
+                        Toast.makeText(this, "✅ Background location permission granted!", Toast.LENGTH_SHORT).show()
+                        checkBatteryOptimization()
+                    },
+                    onPermissionsDenied = {
+                        Log.d("MainActivity", "Background location permission denied")
+                        Toast.makeText(this, "⚠️ Background location permission denied. App may not work reliably in background.", Toast.LENGTH_LONG).show()
+                        checkBatteryOptimization()
+                    }
+                )
+            }
+        }
+    }
+    
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        
+        when (requestCode) {
+            BATTERY_OPTIMIZATION_REQUEST_CODE -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+                    val packageName = packageName
+                    
+                    if (powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                        Toast.makeText(this, "✅ Battery optimization disabled!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this, "⚠️ Battery optimization not disabled. App may not work reliably in background.", Toast.LENGTH_LONG).show()
+                    }
+                }
+                startLocationUpdates()
             }
         }
     }
@@ -345,7 +477,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                 true
             }
             R.id.menu_exit -> {
-                exitApplication()
+                showExitConfirmationDialog()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -366,14 +498,57 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     }
     
     private fun exitApplication() {
-        gpsService.stopGpsUpdates()
-        LocationForegroundService.stopService(this)
-        finish()
+        try {
+            // Stop GPS service
+            gpsService.stopGpsUpdates()
+            
+            // Stop foreground service
+            LocationForegroundService.stopService(this)
+            
+            // Mark service as not running
+            configManager.setServiceRunning(false)
+            
+            // Show exit message
+            Toast.makeText(this, "GPS2REST stopped. Exiting...", Toast.LENGTH_SHORT).show()
+            
+            // Finish the activity
+            finish()
+            
+            // Force exit the app (for older Android versions)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                finishAndRemoveTask()
+            } else {
+                @Suppress("DEPRECATION")
+                finish()
+            }
+            
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error during exit", e)
+            // Force finish even if there's an error
+            finish()
+        }
+    }
+
+    private fun showExitConfirmationDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Exit GPS2REST")
+            .setMessage("Are you sure you want to exit GPS2REST? All tracking services will be stopped.")
+            .setPositiveButton("Yes, Exit") { _, _ ->
+                exitApplication()
+            }
+            .setNegativeButton("Cancel") { _, _ -> }
+            .setCancelable(false)
+            .show()
     }
     
     override fun onDestroy() {
         super.onDestroy()
         gpsService.stopGpsUpdates()
         LocationForegroundService.stopService(this)
+    }
+    
+    @Deprecated("Deprecated in API level 33")
+    override fun onBackPressed() {
+        showExitConfirmationDialog()
     }
 }

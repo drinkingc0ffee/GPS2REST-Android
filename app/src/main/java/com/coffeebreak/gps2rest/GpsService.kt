@@ -24,6 +24,10 @@ class GpsService(private val context: Context) {
     // Default HTTP client for internet requests
     private val defaultHttpClient = OkHttpClient.Builder()
         .dns(Dns.SYSTEM)
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .retryOnConnectionFailure(true)
         .build()
     
     // WiFi-specific HTTP client for local network requests
@@ -31,6 +35,9 @@ class GpsService(private val context: Context) {
     private var wifiNetwork: Network? = null
     
     private var gpsJob: Job? = null
+    private var retryJob: Job? = null
+    private val offlineQueue = mutableListOf<Location>()
+    private val maxOfflineQueueSize = 100
     
     private val _statusMessages = MutableLiveData<List<String>>()
     val statusMessages: LiveData<List<String>> = _statusMessages
@@ -59,11 +66,58 @@ class GpsService(private val context: Context) {
                 delay(frequencyMs)
             }
         }
+        
+        // Start retry job for offline data
+        startRetryJob()
     }
     
     fun stopGpsUpdates() {
         gpsJob?.cancel()
+        retryJob?.cancel()
         addStatusMessage("GPS service stopped")
+    }
+    
+    private fun startRetryJob() {
+        retryJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                try {
+                    if (offlineQueue.isNotEmpty() && isNetworkAvailable()) {
+                        addStatusMessage("Retrying ${offlineQueue.size} offline locations...")
+                        retryOfflineData()
+                    }
+                } catch (e: Exception) {
+                    addStatusMessage("Retry error: ${e.message}")
+                }
+                
+                delay(60000) // Retry every minute
+            }
+        }
+    }
+    
+    private suspend fun retryOfflineData() {
+        val locationsToRetry = offlineQueue.toList()
+        offlineQueue.clear()
+        
+        locationsToRetry.forEach { location ->
+            try {
+                sendGpsData(location, isRetry = true)
+                delay(1000) // Small delay between retries
+            } catch (e: Exception) {
+                // If retry fails, add back to queue
+                if (offlineQueue.size < maxOfflineQueueSize) {
+                    offlineQueue.add(location)
+                }
+            }
+        }
+    }
+    
+    private fun isNetworkAvailable(): Boolean {
+        val activeNetwork = connectivityManager.activeNetwork
+        val networkCapabilities = activeNetwork?.let { 
+            connectivityManager.getNetworkCapabilities(it) 
+        }
+        return networkCapabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true &&
+               networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
     
     private fun initializeWifiClient() {
@@ -79,6 +133,10 @@ class GpsService(private val context: Context) {
                 wifiHttpClient = OkHttpClient.Builder()
                     .socketFactory(activeNetwork.socketFactory)
                     .dns(Dns.SYSTEM)
+                    .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(true)
                     .build()
                 addStatusMessage("WiFi network found for local requests")
             } else {
@@ -92,6 +150,10 @@ class GpsService(private val context: Context) {
                         wifiHttpClient = OkHttpClient.Builder()
                             .socketFactory(network.socketFactory)
                             .dns(Dns.SYSTEM)
+                            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+                            .retryOnConnectionFailure(true)
                             .build()
                         addStatusMessage("WiFi network found for local requests")
                         break
@@ -156,7 +218,7 @@ class GpsService(private val context: Context) {
         }
     }
     
-    private suspend fun sendGpsData(location: Location) {
+    private suspend fun sendGpsData(location: Location, isRetry: Boolean = false) {
         val baseUrl = configManager.getGpsUrl()
 
         // Validate and construct the request URL
@@ -173,7 +235,20 @@ class GpsService(private val context: Context) {
             return
         }
 
-        addStatusMessage("Sending to: $requestUrl")
+        if (!isRetry) {
+            addStatusMessage("Sending to: $requestUrl")
+        }
+
+        // Check network availability
+        if (!isNetworkAvailable()) {
+            if (offlineQueue.size < maxOfflineQueueSize) {
+                offlineQueue.add(location)
+                addStatusMessage("⚠️ Network unavailable, queued location (${offlineQueue.size}/${maxOfflineQueueSize})")
+            } else {
+                addStatusMessage("⚠️ Network unavailable, queue full, dropping location")
+            }
+            return
+        }
 
         // Get the appropriate HTTP client based on the target address
         val httpClient = getHttpClient(requestUrl)
@@ -188,16 +263,35 @@ class GpsService(private val context: Context) {
             val serverHost = response.request.url.host
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: "No response body"
-                addStatusMessage("✓ GPS data sent successfully to $serverHost. Server response: $responseBody")
+                val prefix = if (isRetry) "✓ Retry" else "✓"
+                addStatusMessage("$prefix GPS data sent successfully to $serverHost. Server response: $responseBody")
             } else {
                 val responseBody = response.body?.string() ?: "No response body"
                 addStatusMessage("✗ Server error: ${response.code} from $serverHost. Server response: $responseBody")
+                
+                // Queue for retry on server errors
+                if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
+                    offlineQueue.add(location)
+                    addStatusMessage("⚠️ Queued for retry due to server error")
+                }
             }
             response.close()
         } catch (e: IOException) {
             addStatusMessage("✗ Network error: ${e.message}")
+            
+            // Queue for retry on network errors
+            if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
+                offlineQueue.add(location)
+                addStatusMessage("⚠️ Queued for retry due to network error")
+            }
         } catch (e: Exception) {
             addStatusMessage("✗ Error: ${e.message}")
+            
+            // Queue for retry on other errors
+            if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
+                offlineQueue.add(location)
+                addStatusMessage("⚠️ Queued for retry due to error")
+            }
         }
     }
     

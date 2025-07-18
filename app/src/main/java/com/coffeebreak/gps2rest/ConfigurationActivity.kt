@@ -3,6 +3,7 @@ package com.coffeebreak.gps2rest
 import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -11,6 +12,7 @@ class ConfigurationActivity : AppCompatActivity() {
     
     private lateinit var configManager: ConfigurationManager
     private lateinit var urlEditText: EditText
+    private lateinit var startOnBootCheckBox: CheckBox
     private lateinit var saveButton: Button
     private lateinit var testButton: Button
     
@@ -27,6 +29,7 @@ class ConfigurationActivity : AppCompatActivity() {
     
     private fun initViews() {
         urlEditText = findViewById(R.id.gpsUrlEditText)
+        startOnBootCheckBox = findViewById(R.id.startOnBootCheckBox)
         saveButton = findViewById(R.id.saveButton)
         testButton = findViewById(R.id.testButton)
         
@@ -49,6 +52,9 @@ class ConfigurationActivity : AppCompatActivity() {
         val currentUrl = configManager.getGpsUrl()
         urlEditText.setText(currentUrl)
         
+        val startOnBoot = configManager.shouldStartOnBoot()
+        startOnBootCheckBox.isChecked = startOnBoot
+        
         // Show current configuration status
         val savedUrl = configManager.getCurrentSavedUrl()
         if (savedUrl != "No URL saved (using default)") {
@@ -58,6 +64,7 @@ class ConfigurationActivity : AppCompatActivity() {
     
     private fun saveConfiguration() {
         val url = urlEditText.text.toString().trim()
+        val startOnBoot = startOnBootCheckBox.isChecked
 
         if (url.isEmpty()) {
             Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
@@ -65,6 +72,7 @@ class ConfigurationActivity : AppCompatActivity() {
         }
 
         if (configManager.saveGpsUrl(url)) {
+            configManager.setStartOnBoot(startOnBoot)
             Toast.makeText(this, getString(R.string.configuration_saved), Toast.LENGTH_SHORT).show()
             finish()
         } else {

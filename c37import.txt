@@ -1,0 +1,4 @@
+
+=== Build #91 (Thu Jul 10 21:12:24 EDT 2025) ===
+Command: ./gradlew assembleDebug --info --stacktrace
+See 91.log for complete build output

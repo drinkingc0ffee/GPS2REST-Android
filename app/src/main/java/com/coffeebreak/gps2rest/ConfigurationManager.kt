@@ -12,6 +12,9 @@ class ConfigurationManager(context: Context) {
         private const val PREFS_NAME = "gps2rest_config"
         private const val KEY_GPS_URL = "gps_url"
         private const val KEY_FREQUENCY_SECONDS = "frequency_seconds"
+        private const val KEY_START_ON_BOOT = "start_on_boot"
+        private const val KEY_SERVICE_RUNNING = "service_running"
+        private const val KEY_BATTERY_OPTIMIZATION_REQUESTED = "battery_optimization_requested"
         private const val DEFAULT_GPS_URL = "http://192.168.1.1:8080/api/v1/gps"
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
     }
@@ -66,5 +69,35 @@ class ConfigurationManager(context: Context) {
     
     fun getFrequencySeconds(): Int {
         return sharedPreferences.getInt(KEY_FREQUENCY_SECONDS, DEFAULT_FREQUENCY_SECONDS)
+    }
+    
+    fun setStartOnBoot(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_START_ON_BOOT, enabled)
+            .apply()
+    }
+    
+    fun shouldStartOnBoot(): Boolean {
+        return sharedPreferences.getBoolean(KEY_START_ON_BOOT, false)
+    }
+    
+    fun setServiceRunning(running: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_SERVICE_RUNNING, running)
+            .apply()
+    }
+    
+    fun isServiceRunning(): Boolean {
+        return sharedPreferences.getBoolean(KEY_SERVICE_RUNNING, false)
+    }
+    
+    fun setBatteryOptimizationRequested(requested: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_BATTERY_OPTIMIZATION_REQUESTED, requested)
+            .apply()
+    }
+    
+    fun isBatteryOptimizationRequested(): Boolean {
+        return sharedPreferences.getBoolean(KEY_BATTERY_OPTIMIZATION_REQUESTED, false)
     }
 }

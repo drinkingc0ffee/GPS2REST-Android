@@ -6,13 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -26,8 +29,10 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
     private lateinit var gpsService: GpsService
     private lateinit var configManager: ConfigurationManager
     private lateinit var wakeLock: PowerManager.WakeLock
+    private lateinit var connectivityManager: ConnectivityManager
     private var currentLocation: Location? = null
     private var locationCallback: LocationCallback? = null
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
     
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
@@ -54,6 +59,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         gpsService = GpsService(this)
         configManager = ConfigurationManager(this)
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         
         // Acquire wake lock to prevent system from sleeping
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -63,7 +69,11 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
         )
         wakeLock.acquire(10*60*1000L /*10 minutes*/)
         
+        // Mark service as running
+        configManager.setServiceRunning(true)
+        
         createNotificationChannel()
+        setupNetworkMonitoring()
         startLocationUpdates()
     }
     
@@ -85,12 +95,43 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
         // Clean up
         gpsService.stopGpsUpdates()
         locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
+        networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
         
         if (wakeLock.isHeld) {
             wakeLock.release()
         }
         
+        // Mark service as not running
+        configManager.setServiceRunning(false)
+        
         serviceScope.cancel()
+    }
+    
+    private fun setupNetworkMonitoring() {
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                updateNotification("Network available")
+            }
+            
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                updateNotification("Network lost")
+            }
+            
+            override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
+                super.onCapabilitiesChanged(network, networkCapabilities)
+                val hasInternet = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                val hasValidated = networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                updateNotification("Network: ${if (hasInternet && hasValidated) "Connected" else "Limited"}")
+            }
+        }
+        
+        val networkRequest = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback!!)
     }
     
     private fun createNotificationChannel() {
@@ -102,6 +143,8 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
             ).apply {
                 description = "Notification for GPS tracking service"
                 setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
             }
             
             val notificationManager = getSystemService(NotificationManager::class.java)
@@ -126,6 +169,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
     
@@ -135,6 +179,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            updateNotification("Location permission not granted")
             return
         }
         
@@ -146,6 +191,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
         ).apply {
             setMinUpdateDistanceMeters(0f) // Get updates even if not moving
             setMaxUpdateDelayMillis(frequencyMs * 2) // Maximum delay
+            setWaitForAccurateLocation(false) // Don't wait for accurate location
         }.build()
         
         locationCallback = object : LocationCallback() {
@@ -172,6 +218,22 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        
+        val notificationManager = getSystemService(NotificationManager::class.java)
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+    
+    private fun updateNotification(message: String) {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("GPS2REST Tracking")
+            .setContentText(message)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setOngoing(true)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
         
         val notificationManager = getSystemService(NotificationManager::class.java)
