@@ -295,7 +295,7 @@ class GpsService(private val context: Context) {
         }
     }
     
-    private fun addStatusMessage(message: String) {
+    fun addStatusMessage(message: String) {
         val timestamp = java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             .format(Date())
         val timestampedMessage = "[$timestamp] $message"

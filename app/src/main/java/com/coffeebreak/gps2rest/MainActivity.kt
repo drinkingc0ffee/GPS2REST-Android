@@ -93,6 +93,9 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         gpsService.statusMessages.observe(this) { messages ->
             updateStatusDisplay(messages)
         }
+        
+        // Add initial status message
+        gpsService.addStatusMessage("🚀 App started")
     }
     
     private fun setupClickListeners() {
@@ -537,10 +540,19 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
             .show()
     }
     
+    override fun onPause() {
+        super.onPause()
+        // Add status message for background transition
+        if (::gpsService.isInitialized) {
+            gpsService.addStatusMessage("🟡 App moved to background")
+        }
+    }
+    
     override fun onResume() {
         super.onResume()
-        // Refresh status display when returning from configuration
+        // Add status message for foreground transition
         if (::gpsService.isInitialized) {
+            gpsService.addStatusMessage("🟢 App moved to foreground")
             refreshStatusDisplay()
         } else {
             showInitialStatusDisplay()
@@ -550,6 +562,11 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     override fun onDestroy() {
         super.onDestroy()
         try {
+            // Add status message for app destruction
+            if (::gpsService.isInitialized) {
+                gpsService.addStatusMessage("🔴 App shutting down")
+            }
+            
             // Stop GPS service
             gpsService.stopGpsUpdates()
             
