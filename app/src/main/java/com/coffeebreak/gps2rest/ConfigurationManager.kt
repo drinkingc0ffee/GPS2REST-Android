@@ -164,4 +164,13 @@ class ConfigurationManager(context: Context) {
     fun isJwtEnabled(): Boolean {
         return sharedPreferences.getBoolean(KEY_ENABLE_JWT, false)
     }
+
+    fun setEncryptionKey(key: ByteArray) {
+        val encoded = android.util.Base64.encodeToString(key, android.util.Base64.DEFAULT)
+        sharedPreferences.edit().putString("encryption_key", encoded).apply()
+    }
+    fun getEncryptionKey(): ByteArray? {
+        val encoded = sharedPreferences.getString("encryption_key", null) ?: return null
+        return android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+    }
 }

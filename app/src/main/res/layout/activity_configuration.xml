@@ -86,6 +86,24 @@
         android:text="Enable JWT for Authentication and Integrity"
         android:layout_marginBottom="16dp" />
 
+    <!-- PIN for encryption -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Encryption PIN (8 digits)"
+        android:textSize="14sp"
+        android:layout_marginBottom="4dp" />
+
+    <EditText
+        android:id="@+id/encryptionPinEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter 8-digit PIN"
+        android:inputType="numberPassword"
+        android:maxLength="8"
+        android:importantForAutofill="yes"
+        android:layout_marginBottom="16dp" />
+
     <!-- Privacy settings section -->
     <TextView
         android:layout_width="match_parent"

@@ -16,6 +16,7 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var saveButton: Button
     private lateinit var testButton: Button
     private lateinit var cancelButton: Button
+    private lateinit var encryptionPinEditText: EditText
     
     // Privacy UI components
     private lateinit var privacyModeRadioGroup: RadioGroup
@@ -45,6 +46,7 @@ class ConfigurationActivity : AppCompatActivity() {
         saveButton = findViewById(R.id.saveButton)
         testButton = findViewById(R.id.testButton)
         cancelButton = findViewById(R.id.cancelButton)
+        encryptionPinEditText = findViewById(R.id.encryptionPinEditText)
         privacyModeRadioGroup = findViewById(R.id.privacyModeRadioGroup)
         randomNoiseRadio = findViewById(R.id.randomNoiseRadio)
         truncateRadio = findViewById(R.id.truncateRadio)
@@ -190,11 +192,19 @@ class ConfigurationActivity : AppCompatActivity() {
         val url = urlEditText.text.toString().trim()
         val startOnBoot = startOnBootCheckBox.isChecked
         val enableJwt = enableJwtCheckBox.isChecked
+        val pin = encryptionPinEditText.text.toString().trim()
 
         if (url.isEmpty()) {
             Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
             return
         }
+
+        if (pin.length != 8 || !pin.all { it.isDigit() }) {
+            Toast.makeText(this, "PIN must be exactly 8 digits.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val derivedKey = KdfUtil.deriveKeyFromPin(pin)
+        configManager.setEncryptionKey(derivedKey)
 
         if (configManager.saveGpsUrl(url)) {
             configManager.setStartOnBoot(startOnBoot)
