@@ -59,6 +59,95 @@
         android:textColor="@android:color/darker_gray"
         android:layout_marginBottom="24dp" />
 
+    <!-- Privacy settings section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔒 Privacy Protection Settings"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Choose how your GPS coordinates are processed before transmission:"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        android:layout_marginBottom="12dp" />
+
+    <RadioGroup
+        android:id="@+id/privacyModeRadioGroup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp">
+
+        <RadioButton
+            android:id="@+id/randomNoiseRadio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎲 Add Random Noise (Default)"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="   • Adds ±111m random offset to coordinates\n   • Moderate privacy with good accuracy"
+            android:textSize="11sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="32dp" />
+
+        <RadioButton
+            android:id="@+id/truncateRadio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📐 Truncate Coordinates"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/truncationSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="32dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:enabled="false" />
+
+        <RadioButton
+            android:id="@+id/originalRadio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎯 Original (Full Precision)"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="   • No privacy protection\n   • Exact GPS coordinates transmitted"
+            android:textSize="11sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginBottom="16dp"
+            android:layout_marginStart="32dp" />
+
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/privacyStatusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Current: Random Noise (±111m)"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        android:textColor="@android:color/holo_blue_dark"
+        android:layout_marginBottom="24dp" />
+
     <!-- Button container with buttonBarStyle -->
     <LinearLayout
         android:layout_width="match_parent"

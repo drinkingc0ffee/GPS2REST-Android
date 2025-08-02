@@ -15,8 +15,17 @@ class ConfigurationManager(context: Context) {
         private const val KEY_START_ON_BOOT = "start_on_boot"
         private const val KEY_SERVICE_RUNNING = "service_running"
         private const val KEY_BATTERY_OPTIMIZATION_REQUESTED = "battery_optimization_requested"
+        private const val KEY_PRIVACY_MODE = "privacy_mode"
+        private const val KEY_TRUNCATION_PRECISION = "truncation_precision"
         private const val DEFAULT_GPS_URL = "http://192.168.1.1:8080/api/v1/gps"
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
+        
+        // Privacy modes
+        const val PRIVACY_MODE_RANDOM_NOISE = "random_noise"
+        const val PRIVACY_MODE_TRUNCATE = "truncate"
+        const val PRIVACY_MODE_ORIGINAL = "original"
+        private const val DEFAULT_PRIVACY_MODE = PRIVACY_MODE_RANDOM_NOISE
+        private const val DEFAULT_TRUNCATION_PRECISION = 3 // 3 decimal places (~110m)
     }
     
     fun saveGpsUrl(url: String): Boolean {
@@ -99,5 +108,26 @@ class ConfigurationManager(context: Context) {
     
     fun isBatteryOptimizationRequested(): Boolean {
         return sharedPreferences.getBoolean(KEY_BATTERY_OPTIMIZATION_REQUESTED, false)
+    }
+    
+    // Privacy mode configuration
+    fun setPrivacyMode(mode: String) {
+        sharedPreferences.edit()
+            .putString(KEY_PRIVACY_MODE, mode)
+            .apply()
+    }
+    
+    fun getPrivacyMode(): String {
+        return sharedPreferences.getString(KEY_PRIVACY_MODE, DEFAULT_PRIVACY_MODE) ?: DEFAULT_PRIVACY_MODE
+    }
+    
+    fun setTruncationPrecision(precision: Int) {
+        sharedPreferences.edit()
+            .putInt(KEY_TRUNCATION_PRECISION, precision)
+            .apply()
+    }
+    
+    fun getTruncationPrecision(): Int {
+        return sharedPreferences.getInt(KEY_TRUNCATION_PRECISION, DEFAULT_TRUNCATION_PRECISION)
     }
 }
