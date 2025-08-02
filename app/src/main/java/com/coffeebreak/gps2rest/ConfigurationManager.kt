@@ -2,12 +2,14 @@ package com.coffeebreak.gps2rest
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.security.SecureRandom
 
 class ConfigurationManager(context: Context) {
     
     private val sharedPreferences: SharedPreferences = 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    
+    private val secureRandom = SecureRandom()
+
     companion object {
         private const val PREFS_NAME = "gps2rest_config"
         private const val KEY_GPS_URL = "gps_url"
@@ -141,5 +143,14 @@ class ConfigurationManager(context: Context) {
         sharedPreferences.edit()
             .putInt(KEY_RANDOM_NOISE_LEVEL, level)
             .apply()
+    }
+
+    /**
+     * Generates a cryptographically secure random noise value.
+     * @param maxNoiseLevel The maximum noise level to generate.
+     * @return A random noise value between 0 and maxNoiseLevel (inclusive).
+     */
+    fun generateSecureRandomNoise(maxNoiseLevel: Int): Int {
+        return secureRandom.nextInt(maxNoiseLevel + 1)
     }
 }
