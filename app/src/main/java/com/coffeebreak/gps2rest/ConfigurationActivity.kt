@@ -67,7 +67,7 @@ class ConfigurationActivity : AppCompatActivity() {
     
     private fun setupPrivacyControls() {
         // Set up truncation spinner
-        val truncationOptions = privacyManager.getTruncationOptions()
+        val truncationOptions = PrivacyManager.getTruncationOptions()
         val adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_item,
@@ -87,7 +87,7 @@ class ConfigurationActivity : AppCompatActivity() {
                     truncationSpinner.isEnabled = true
                     updatePrivacyStatus()
                 }
-                R.id.originalRadio -> {
+                R.id.originalRadio -> { // Update to reflect 'Precision Location'
                     truncationSpinner.isEnabled = false
                     updatePrivacyStatus()
                 }
@@ -104,20 +104,33 @@ class ConfigurationActivity : AppCompatActivity() {
     }
     
     private fun updatePrivacyStatus() {
-        val currentMode = when {
-            randomNoiseRadio.isChecked -> "Random Noise (±111m)"
-            truncateRadio.isChecked -> {
-                val options = privacyManager.getTruncationOptions()
-                val selectedPosition = truncationSpinner.selectedItemPosition
-                if (selectedPosition >= 0 && selectedPosition < options.size) {
-                    val precision = options[selectedPosition].first
-                    privacyManager.getTruncationAccuracyDescription(precision)
-                } else "Truncated coordinates"
-            }
-            originalRadio.isChecked -> "Original coordinates - No privacy protection"
-            else -> "Unknown"
+        val currentMode = configManager.getPrivacyMode()
+        val truncationPrecision = configManager.getTruncationPrecision()
+        
+        val description = PrivacyManager.getPrivacyModeDescription(currentMode)
+        val privacyLevel = PrivacyManager.getPrivacyLevel(currentMode)
+        val radiusText = PrivacyManager.getPrivacyRadius(currentMode, truncationPrecision)
+        
+        // Get numeric privacy level for color coding
+        val numericPrivacyLevel = privacyManager.getPrivacyStrength()
+        
+        // Create detailed status text
+        val statusText = buildString {
+            append("Current: $description\n")
+            append("Privacy Level: $privacyLevel\n")
+            append("Protection Radius: $radiusText")
         }
-        privacyStatusText.text = "Current: $currentMode"
+        
+        privacyStatusText.text = statusText
+        
+        // Color code based on privacy level
+        val textColor = when {
+            numericPrivacyLevel >= 70 -> Color.GREEN
+            numericPrivacyLevel >= 40 -> Color.rgb(255, 165, 0) // Orange
+            numericPrivacyLevel > 0 -> Color.rgb(255, 140, 0) // Dark orange
+            else -> Color.RED
+        }
+        privacyStatusText.setTextColor(textColor)
     }
     
     private fun loadCurrentConfiguration() {
@@ -139,7 +152,7 @@ class ConfigurationActivity : AppCompatActivity() {
                 truncationSpinner.isEnabled = true
                 // Set spinner to current precision
                 val currentPrecision = configManager.getTruncationPrecision()
-                val options = privacyManager.getTruncationOptions()
+                val options = PrivacyManager.getTruncationOptions()
                 val position = options.indexOfFirst { it.first == currentPrecision }
                 if (position >= 0) {
                     truncationSpinner.setSelection(position)
@@ -183,7 +196,7 @@ class ConfigurationActivity : AppCompatActivity() {
             
             // Save truncation precision if applicable
             if (truncateRadio.isChecked) {
-                val options = privacyManager.getTruncationOptions()
+                val options = PrivacyManager.getTruncationOptions()
                 val selectedPosition = truncationSpinner.selectedItemPosition
                 if (selectedPosition >= 0 && selectedPosition < options.size) {
                     val precision = options[selectedPosition].first

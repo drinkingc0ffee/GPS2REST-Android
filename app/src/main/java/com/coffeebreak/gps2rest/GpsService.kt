@@ -19,7 +19,6 @@ import javax.net.SocketFactory
 class GpsService(private val context: Context) {
     
     private val configManager = ConfigurationManager(context)
-    private val privacyManager = PrivacyManager(configManager)
     private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     
     // Default HTTP client for internet requests
@@ -223,7 +222,9 @@ class GpsService(private val context: Context) {
         val baseUrl = configManager.getGpsUrl()
 
         // Apply privacy protection to location data
-        val protectedLocation = privacyManager.applyPrivacyProtection(location)
+        val privacyMode = configManager.getPrivacyMode()
+        val truncationPrecision = if (privacyMode == PrivacyManager.MODE_TRUNCATE) configManager.getTruncationPrecision() else null
+        val protectedLocation = PrivacyManager.applyPrivacyMode(location, privacyMode, truncationPrecision)
 
         // Validate and construct the request URL
         val requestUrl = try {
@@ -240,7 +241,6 @@ class GpsService(private val context: Context) {
         }
 
         if (!isRetry) {
-            val privacyMode = privacyManager.getPrivacyModeDescription()
             addStatusMessage("📍 Privacy: $privacyMode")
             addStatusMessage("Sending to: $requestUrl")
         }
