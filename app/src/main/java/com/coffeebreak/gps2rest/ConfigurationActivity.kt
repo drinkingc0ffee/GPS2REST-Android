@@ -22,14 +22,14 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var originalRadio: RadioButton
     private lateinit var truncationSpinner: Spinner
     private lateinit var privacyStatusText: TextView
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_configuration)
-        
+
         configManager = ConfigurationManager(this)
         privacyManager = PrivacyManager(configManager)
-        
+
         initViews()
         setupClickListeners()
         setupPrivacyControls()
@@ -41,8 +41,6 @@ class ConfigurationActivity : AppCompatActivity() {
         startOnBootCheckBox = findViewById(R.id.startOnBootCheckBox)
         saveButton = findViewById(R.id.saveButton)
         testButton = findViewById(R.id.testButton)
-        
-        // Privacy UI components
         privacyModeRadioGroup = findViewById(R.id.privacyModeRadioGroup)
         randomNoiseRadio = findViewById(R.id.randomNoiseRadio)
         truncateRadio = findViewById(R.id.truncateRadio)
@@ -75,7 +73,7 @@ class ConfigurationActivity : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         truncationSpinner.adapter = adapter
-        
+
         // Set up radio group listener
         privacyModeRadioGroup.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
@@ -93,13 +91,23 @@ class ConfigurationActivity : AppCompatActivity() {
                 }
             }
         }
-        
+
         // Set up spinner listener
         truncationSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            override fun onItemSelected(
+                parent: AdapterView<*>,
+                view: View,
+                position: Int,
+                id: Long
+            ) {
+                val precision = truncationOptions[position].first
+                configManager.setTruncationPrecision(precision)
                 updatePrivacyStatus()
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+
+            override fun onNothingSelected(parent: AdapterView<*>) {
+                // Do nothing
+            }
         }
     }
     
@@ -140,32 +148,25 @@ class ConfigurationActivity : AppCompatActivity() {
         val startOnBoot = configManager.shouldStartOnBoot()
         startOnBootCheckBox.isChecked = startOnBoot
         
-        // Load privacy settings
-        val currentPrivacyMode = configManager.getPrivacyMode()
-        when (currentPrivacyMode) {
+        // Set privacy mode
+        when (configManager.getPrivacyMode()) {
             ConfigurationManager.PRIVACY_MODE_RANDOM_NOISE -> {
-                randomNoiseRadio.isChecked = true
+                privacyModeRadioGroup.check(R.id.randomNoiseRadio)
                 truncationSpinner.isEnabled = false
             }
             ConfigurationManager.PRIVACY_MODE_TRUNCATE -> {
-                truncateRadio.isChecked = true
+                privacyModeRadioGroup.check(R.id.truncateRadio)
                 truncationSpinner.isEnabled = true
-                // Set spinner to current precision
-                val currentPrecision = configManager.getTruncationPrecision()
-                val options = PrivacyManager.getTruncationOptions()
-                val position = options.indexOfFirst { it.first == currentPrecision }
-                if (position >= 0) {
-                    truncationSpinner.setSelection(position)
-                }
             }
             ConfigurationManager.PRIVACY_MODE_ORIGINAL -> {
-                originalRadio.isChecked = true
+                privacyModeRadioGroup.check(R.id.originalRadio)
                 truncationSpinner.isEnabled = false
             }
         }
-        
+
+        // Update privacy status
         updatePrivacyStatus()
-        
+
         // Show current configuration status
         val savedUrl = configManager.getCurrentSavedUrl()
         if (savedUrl != "No URL saved (using default)") {

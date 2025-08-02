@@ -17,8 +17,10 @@ class ConfigurationManager(context: Context) {
         private const val KEY_BATTERY_OPTIMIZATION_REQUESTED = "battery_optimization_requested"
         private const val KEY_PRIVACY_MODE = "privacy_mode"
         private const val KEY_TRUNCATION_PRECISION = "truncation_precision"
+        private const val KEY_RANDOM_NOISE_LEVEL = "random_noise_level"
         private const val DEFAULT_GPS_URL = "http://192.168.1.1:8080/api/v1/gps"
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
+        private const val DEFAULT_RANDOM_NOISE_LEVEL = 50 // Default value for the slider
         
         // Privacy modes
         const val PRIVACY_MODE_RANDOM_NOISE = "random_noise"
@@ -129,5 +131,15 @@ class ConfigurationManager(context: Context) {
     
     fun getTruncationPrecision(): Int {
         return sharedPreferences.getInt(KEY_TRUNCATION_PRECISION, DEFAULT_TRUNCATION_PRECISION)
+    }
+    
+    fun getRandomNoiseLevel(): Int {
+        return sharedPreferences.getInt(KEY_RANDOM_NOISE_LEVEL, DEFAULT_RANDOM_NOISE_LEVEL)
+    }
+
+    fun setRandomNoiseLevel(level: Int) {
+        sharedPreferences.edit()
+            .putInt(KEY_RANDOM_NOISE_LEVEL, level)
+            .apply()
     }
 }
