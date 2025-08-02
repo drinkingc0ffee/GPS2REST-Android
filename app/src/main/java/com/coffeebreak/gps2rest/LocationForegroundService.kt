@@ -81,8 +81,8 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
         val notification = createNotification()
         startForeground(NOTIFICATION_ID, notification)
         
-        // Start GPS service
-        gpsService.startGpsUpdates(this)
+        // Note: GPS data transmission is handled by MainActivity's GpsService
+        // This service only handles background location tracking for notifications
         
         return START_STICKY // Restart service if killed
     }
@@ -92,8 +92,7 @@ class LocationForegroundService : Service(), GpsService.LocationProvider {
     override fun onDestroy() {
         super.onDestroy()
         
-        // Clean up
-        gpsService.stopGpsUpdates()
+        // Clean up location tracking only
         locationCallback?.let { fusedLocationClient.removeLocationUpdates(it) }
         networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
         

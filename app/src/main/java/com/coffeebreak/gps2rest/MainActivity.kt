@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
     
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 1001
-        private const val BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE = 1002
+        // REMOVED: BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE - no longer needed
         private const val BATTERY_OPTIMIZATION_REQUEST_CODE = 1003
     }
     
@@ -186,56 +186,17 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
         if (permissionManager.arePermissionsGranted(basicLocationPermissions)) {
             Log.d("MainActivity", "All basic permissions already granted")
             initLocationServices()
-            checkBackgroundLocationPermission()
+            checkBatteryOptimization() // Skip background location check
         } else {
             Log.d("MainActivity", "Showing permission explanation dialog")
             showPermissionExplanationDialog()
         }
     }
     
-    private fun checkBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                Log.d("MainActivity", "Background location permission not granted")
-                showBackgroundLocationPermissionDialog()
-            } else {
-                Log.d("MainActivity", "Background location permission already granted")
-                checkBatteryOptimization()
-            }
-        } else {
-            // Android 9 and below don't need background location permission
-            checkBatteryOptimization()
-        }
-    }
-    
-    private fun showBackgroundLocationPermissionDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("🔄 Background Location Permission")
-            .setMessage("For reliable background GPS tracking, GPS2REST needs background location permission.\n\nThis allows the app to continue tracking your location even when the app is not in the foreground.")
-            .setPositiveButton("Grant Permission") { _, _ ->
-                Log.d("MainActivity", "User agreed to grant background location permission")
-                requestBackgroundLocationPermission()
-            }
-            .setNegativeButton("Skip") { _, _ ->
-                Log.d("MainActivity", "User skipped background location permission")
-                checkBatteryOptimization()
-            }
-            .setCancelable(false)
-            .show()
-    }
-    
-    private fun requestBackgroundLocationPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissionManager.requestMissingPermissions(
-                arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),
-                BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE
-            )
-        }
-    }
+    // REMOVED: Background location permission no longer needed with foreground service
+    // private fun checkBackgroundLocationPermission() { ... }
+    // private fun showBackgroundLocationPermissionDialog() { ... }
+    // private fun requestBackgroundLocationPermission() { ... }
     
     private fun checkBatteryOptimization() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -328,7 +289,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                     onPermissionsGranted = {
                         Log.d("MainActivity", "Location permissions granted")
                         initLocationServices()
-                        checkBackgroundLocationPermission()
+                        checkBatteryOptimization() // Skip background location check
                         Toast.makeText(this, "✅ Location permission granted! App is ready.", Toast.LENGTH_SHORT).show()
                     },
                     onPermissionsDenied = {
@@ -337,23 +298,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                     }
                 )
             }
-            BACKGROUND_LOCATION_PERMISSION_REQUEST_CODE -> {
-                permissionManager.handlePermissionsResult(
-                    requestCode,
-                    permissions,
-                    grantResults,
-                    onPermissionsGranted = {
-                        Log.d("MainActivity", "Background location permission granted")
-                        Toast.makeText(this, "✅ Background location permission granted!", Toast.LENGTH_SHORT).show()
-                        checkBatteryOptimization()
-                    },
-                    onPermissionsDenied = {
-                        Log.d("MainActivity", "Background location permission denied")
-                        Toast.makeText(this, "⚠️ Background location permission denied. App may not work reliably in background.", Toast.LENGTH_LONG).show()
-                        checkBatteryOptimization()
-                    }
-                )
-            }
+            // REMOVED: Background location permission case - no longer needed with foreground service
         }
     }
     
@@ -426,7 +371,7 @@ class MainActivity : AppCompatActivity(), GpsService.LocationProvider {
                 mainLooper
             )
             
-            // Start GPS service
+            // Start GPS service for REST API transmission
             gpsService.startGpsUpdates(this)
             
             // Start foreground service for background tracking
