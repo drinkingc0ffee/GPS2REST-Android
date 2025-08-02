@@ -225,11 +225,13 @@ class ConfigurationActivity : AppCompatActivity() {
     
     private fun updatePinUiState() {
         val parent = pinStatusText.parent as? LinearLayout
-        if (jwtConfigured) {
+        val key = configManager.getEncryptionKey()
+        val keyInstalled = key != null && key.size == 32
+        if (keyInstalled) {
             encryptionPinEditText.visibility = View.GONE
             savePinButton.visibility = View.GONE
             pinStatusText.setTextColor(Color.GREEN)
-            pinStatusText.text = "JWT crypto is configured."
+            pinStatusText.text = "Encryption key is installed. JWT crypto is configured."
             if (changePinButton == null && parent != null) {
                 changePinButton = Button(this).apply {
                     id = View.generateViewId()
@@ -241,7 +243,6 @@ class ConfigurationActivity : AppCompatActivity() {
                         this.visibility = View.GONE
                         pinStatusText.setTextColor(Color.RED)
                         pinStatusText.text = "Enter a new 8-digit PIN to update."
-                        jwtConfigured = false
                     }
                 }
                 val index = parent.indexOfChild(pinStatusText)
@@ -252,7 +253,7 @@ class ConfigurationActivity : AppCompatActivity() {
             encryptionPinEditText.visibility = View.VISIBLE
             savePinButton.visibility = View.VISIBLE
             pinStatusText.setTextColor(Color.RED)
-            pinStatusText.text = "PIN not set. Please enter an 8-digit PIN."
+            pinStatusText.text = "Encryption key not set. Please enter an 8-digit PIN."
             changePinButton?.visibility = View.GONE
         }
     }

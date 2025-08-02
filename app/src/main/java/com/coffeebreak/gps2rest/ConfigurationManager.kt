@@ -5,18 +5,19 @@ import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.spec.GCMParameterSpec
 import java.security.SecureRandom
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
-import javax.crypto.spec.SecretKeySpec
 
 class ConfigurationManager(context: Context) {
     
     private val sharedPreferences: SharedPreferences = 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val secureRandom = SecureRandom()
-    private val keystoreAlias = "gps2rest_jwt_key"
+    private val keystoreAlias = "gps2rest_aes_key"
     private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+    private val ENCRYPTED_KEY_PREF = "encrypted_derived_key"
+    private val ENCRYPTED_IV_PREF = "encrypted_derived_key_iv"
 
     companion object {
         private const val PREFS_NAME = "gps2rest_config"
@@ -174,30 +175,56 @@ class ConfigurationManager(context: Context) {
     }
 
     /**
-     * Stores the derived key securely in the Android Keystore.
-     * This will overwrite any existing key with the same alias.
+     * Stores the derived key securely by encrypting it with an AES key in the Android Keystore.
      */
-    fun setEncryptionKey(key: ByteArray) {
-        // Remove any existing key with this alias
-        if (keyStore.containsAlias(keystoreAlias)) {
-            keyStore.deleteEntry(keystoreAlias)
-        }
-        // Store the key as a SecretKey in the Keystore
-        val secretKey = SecretKeySpec(key, "HmacSHA256")
-        val keyEntry = KeyStore.SecretKeyEntry(secretKey)
-        keyStore.setEntry(keystoreAlias, keyEntry, null)
+    fun setEncryptionKey(derivedKey: ByteArray) {
+        val secretKey = getOrCreateAesKey()
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+        val iv = cipher.iv
+        val encrypted = cipher.doFinal(derivedKey)
+        val encodedEncrypted = android.util.Base64.encodeToString(encrypted, android.util.Base64.DEFAULT)
+        val encodedIv = android.util.Base64.encodeToString(iv, android.util.Base64.DEFAULT)
+        sharedPreferences.edit()
+            .putString(ENCRYPTED_KEY_PREF, encodedEncrypted)
+            .putString(ENCRYPTED_IV_PREF, encodedIv)
+            .apply()
     }
 
     /**
-     * Retrieves the derived key from the Android Keystore.
+     * Retrieves the derived key by decrypting it with the AES key from the Android Keystore.
      * Returns null if not set.
      */
     fun getEncryptionKey(): ByteArray? {
-        return if (keyStore.containsAlias(keystoreAlias)) {
-            val entry = keyStore.getEntry(keystoreAlias, null) as? KeyStore.SecretKeyEntry
-            entry?.secretKey?.encoded
-        } else {
-            null
+        val encodedEncrypted = sharedPreferences.getString(ENCRYPTED_KEY_PREF, null) ?: return null
+        val encodedIv = sharedPreferences.getString(ENCRYPTED_IV_PREF, null) ?: return null
+        val encrypted = android.util.Base64.decode(encodedEncrypted, android.util.Base64.DEFAULT)
+        val iv = android.util.Base64.decode(encodedIv, android.util.Base64.DEFAULT)
+        val secretKey = getOrCreateAesKey()
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        val spec = GCMParameterSpec(128, iv)
+        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+        return cipher.doFinal(encrypted)
+    }
+
+    /**
+     * Gets or creates an AES key in the Android Keystore.
+     */
+    private fun getOrCreateAesKey(): javax.crypto.SecretKey {
+        if (keyStore.containsAlias(keystoreAlias)) {
+            val entry = keyStore.getEntry(keystoreAlias, null) as KeyStore.SecretKeyEntry
+            return entry.secretKey
         }
+        val keyGenerator = javax.crypto.KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+        val keyGenParameterSpec = KeyGenParameterSpec.Builder(
+            keystoreAlias,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+        )
+            .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+            .setKeySize(256)
+            .build()
+        keyGenerator.init(keyGenParameterSpec)
+        return keyGenerator.generateKey()
     }
 }
