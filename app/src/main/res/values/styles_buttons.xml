@@ -1,0 +1,20 @@
+<resources>
+    <style name="ButtonSave" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/button_save_green</item>
+        <item name="android:textColor">@color/button_text_black</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
+    </style>
+    <style name="ButtonCancel" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/button_cancel_red</item>
+        <item name="android:textColor">@color/button_text_black</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
+    </style>
+    <style name="ButtonTest" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/button_test_orange</item>
+        <item name="android:textColor">@color/button_text_black</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
+    </style>
+</resources>

@@ -5,9 +5,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="0dp"
     android:fitsSystemWindows="true"
     tools:context=".ConfigurationActivity">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
 
     <TextView
         android:layout_width="match_parent"
@@ -58,6 +69,22 @@
         android:textSize="12sp"
         android:textColor="@android:color/darker_gray"
         android:layout_marginBottom="24dp" />
+
+    <!-- JWT settings section -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔑 JWT Settings"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <CheckBox
+        android:id="@+id/enableJwtCheckBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enable JWT for Authentication and Integrity"
+        android:layout_marginBottom="16dp" />
 
     <!-- Privacy settings section -->
     <TextView
@@ -149,27 +176,40 @@
         android:layout_marginBottom="24dp" />
 
     <!-- Button container with buttonBarStyle -->
+        </LinearLayout>
+    </ScrollView>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="end"
+        android:gravity="bottom|end"
+        android:layout_gravity="bottom"
         style="?android:attr/buttonBarStyle">
 
         <Button
             android:id="@+id/testButton"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="@string/test_button"
-            android:layout_marginEnd="8dp"
-            style="?android:attr/buttonBarButtonStyle" />
+            style="@style/ButtonTest" />
+
+        <Button
+            android:id="@+id/cancelButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/cancel_button"
+            style="@style/ButtonCancel" />
 
         <Button
             android:id="@+id/saveButton"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="@string/save_button"
-            style="?android:attr/buttonBarButtonStyle" />
+            style="@style/ButtonSave" />
 
     </LinearLayout>
 

@@ -20,14 +20,15 @@ class ConfigurationManager(context: Context) {
         private const val KEY_PRIVACY_MODE = "privacy_mode"
         private const val KEY_TRUNCATION_PRECISION = "truncation_precision"
         private const val KEY_RANDOM_NOISE_LEVEL = "random_noise_level"
+        private const val KEY_ENABLE_JWT = "enable_jwt"
         private const val DEFAULT_GPS_URL = "http://192.168.1.1:8080/api/v1/gps"
         private const val DEFAULT_FREQUENCY_SECONDS = 15 // 15 seconds default
         private const val DEFAULT_RANDOM_NOISE_LEVEL = 50 // Default value for the slider
         
         // Privacy modes
-        const val PRIVACY_MODE_RANDOM_NOISE = "random_noise"
-        const val PRIVACY_MODE_TRUNCATE = "truncate"
-        const val PRIVACY_MODE_ORIGINAL = "original"
+        const val PRIVACY_MODE_RANDOM_NOISE = "Add Random Noise"
+        const val PRIVACY_MODE_TRUNCATE = "Truncate Coordinates"
+        const val PRIVACY_MODE_ORIGINAL = "Precision Location"
         private const val DEFAULT_PRIVACY_MODE = PRIVACY_MODE_RANDOM_NOISE
         private const val DEFAULT_TRUNCATION_PRECISION = 3 // 3 decimal places (~110m)
     }
@@ -152,5 +153,15 @@ class ConfigurationManager(context: Context) {
      */
     fun generateSecureRandomNoise(maxNoiseLevel: Int): Int {
         return secureRandom.nextInt(maxNoiseLevel + 1)
+    }
+
+    fun setEnableJwt(enabled: Boolean) {
+        sharedPreferences.edit()
+            .putBoolean(KEY_ENABLE_JWT, enabled)
+            .apply()
+    }
+
+    fun isJwtEnabled(): Boolean {
+        return sharedPreferences.getBoolean(KEY_ENABLE_JWT, false)
     }
 }

@@ -12,8 +12,10 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var privacyManager: PrivacyManager
     private lateinit var urlEditText: EditText
     private lateinit var startOnBootCheckBox: CheckBox
+    private lateinit var enableJwtCheckBox: CheckBox
     private lateinit var saveButton: Button
     private lateinit var testButton: Button
+    private lateinit var cancelButton: Button
     
     // Privacy UI components
     private lateinit var privacyModeRadioGroup: RadioGroup
@@ -39,8 +41,10 @@ class ConfigurationActivity : AppCompatActivity() {
     private fun initViews() {
         urlEditText = findViewById(R.id.gpsUrlEditText)
         startOnBootCheckBox = findViewById(R.id.startOnBootCheckBox)
+        enableJwtCheckBox = findViewById(R.id.enableJwtCheckBox)
         saveButton = findViewById(R.id.saveButton)
         testButton = findViewById(R.id.testButton)
+        cancelButton = findViewById(R.id.cancelButton)
         privacyModeRadioGroup = findViewById(R.id.privacyModeRadioGroup)
         randomNoiseRadio = findViewById(R.id.randomNoiseRadio)
         truncateRadio = findViewById(R.id.truncateRadio)
@@ -60,6 +64,11 @@ class ConfigurationActivity : AppCompatActivity() {
         
         testButton.setOnClickListener {
             testConfiguration()
+        }
+        
+        cancelButton.setOnClickListener {
+            loadCurrentConfiguration()
+            Toast.makeText(this, "Changes discarded", Toast.LENGTH_SHORT).show()
         }
     }
     
@@ -147,6 +156,9 @@ class ConfigurationActivity : AppCompatActivity() {
         
         val startOnBoot = configManager.shouldStartOnBoot()
         startOnBootCheckBox.isChecked = startOnBoot
+
+        val enableJwt = configManager.isJwtEnabled()
+        enableJwtCheckBox.isChecked = enableJwt
         
         // Set privacy mode
         when (configManager.getPrivacyMode()) {
@@ -177,6 +189,7 @@ class ConfigurationActivity : AppCompatActivity() {
     private fun saveConfiguration() {
         val url = urlEditText.text.toString().trim()
         val startOnBoot = startOnBootCheckBox.isChecked
+        val enableJwt = enableJwtCheckBox.isChecked
 
         if (url.isEmpty()) {
             Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
@@ -185,7 +198,8 @@ class ConfigurationActivity : AppCompatActivity() {
 
         if (configManager.saveGpsUrl(url)) {
             configManager.setStartOnBoot(startOnBoot)
-            
+            configManager.setEnableJwt(enableJwt)
+
             // Save privacy settings
             val selectedPrivacyMode = when {
                 randomNoiseRadio.isChecked -> ConfigurationManager.PRIVACY_MODE_RANDOM_NOISE

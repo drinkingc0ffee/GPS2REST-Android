@@ -219,7 +219,11 @@ class GpsService(private val context: Context) {
     }
     
     private suspend fun sendGpsData(location: Location, isRetry: Boolean = false) {
-        val baseUrl = configManager.getGpsUrl()
+        val baseUrl = if (configManager.isJwtEnabled()) {
+            "http://your-server.com:8080/api/v2/gps"
+        } else {
+            configManager.getGpsUrl()
+        }
 
         // Apply privacy protection to location data
         val privacyMode = configManager.getPrivacyMode()
@@ -231,7 +235,7 @@ class GpsService(private val context: Context) {
             val sanitizedBaseUrl = baseUrl.trimEnd('/')
             val coordinates = "${protectedLocation.latitude},${protectedLocation.longitude}"
             val fullUrl = "$sanitizedBaseUrl/$coordinates"
-            
+
             // Validate the URL before using it
             java.net.URL(fullUrl)
             fullUrl
@@ -259,13 +263,21 @@ class GpsService(private val context: Context) {
         // Get the appropriate HTTP client based on the target address
         val httpClient = getHttpClient(requestUrl)
 
-        val request = Request.Builder()
+        val requestBuilder = Request.Builder()
             .url(requestUrl)
             .post("".toRequestBody()) // Ensure POST request
-            .build()
+
+        // Add JWT header if enabled
+        if (configManager.isJwtEnabled()) {
+            val jwtToken = generateJwtToken() // Implement JWT generation logic
+            requestBuilder.addHeader("Authorization", "Bearer $jwtToken")
+        }
+
+        val request = requestBuilder.build()
 
         try {
             val response = httpClient.newCall(request).execute()
+
             val serverHost = response.request.url.host
             if (response.isSuccessful) {
                 val responseBody = response.body?.string() ?: "No response body"
@@ -274,7 +286,7 @@ class GpsService(private val context: Context) {
             } else {
                 val responseBody = response.body?.string() ?: "No response body"
                 addStatusMessage("✗ Server error: ${response.code} from $serverHost. Server response: $responseBody")
-                
+
                 // Queue for retry on server errors
                 if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
                     offlineQueue.add(location)
@@ -284,7 +296,7 @@ class GpsService(private val context: Context) {
             response.close()
         } catch (e: IOException) {
             addStatusMessage("✗ Network error: ${e.message}")
-            
+
             // Queue for retry on network errors
             if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
                 offlineQueue.add(location)
@@ -292,13 +304,18 @@ class GpsService(private val context: Context) {
             }
         } catch (e: Exception) {
             addStatusMessage("✗ Error: ${e.message}")
-            
+
             // Queue for retry on other errors
             if (!isRetry && offlineQueue.size < maxOfflineQueueSize) {
                 offlineQueue.add(location)
                 addStatusMessage("⚠️ Queued for retry due to error")
             }
         }
+    }
+
+    private fun generateJwtToken(): String {
+        // Implement JWT generation logic here
+        return "mocked.jwt.token" // Replace with actual JWT generation
     }
     
     private fun addStatusMessage(message: String) {

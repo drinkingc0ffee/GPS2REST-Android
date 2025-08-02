@@ -12,9 +12,9 @@ class PrivacyManager(private val configurationManager: ConfigurationManager) {
 
     companion object {
         // Privacy mode constants
-        const val MODE_PRECISION_LOCATION = "Precision Location" // Renamed from Original
-        const val MODE_RANDOM_NOISE = "Add Random Noise"
-        const val MODE_TRUNCATE = "Truncate Coordinates"
+        const val MODE_PRECISION_LOCATION = ConfigurationManager.PRIVACY_MODE_ORIGINAL
+        const val MODE_RANDOM_NOISE = ConfigurationManager.PRIVACY_MODE_RANDOM_NOISE
+        const val MODE_TRUNCATE = ConfigurationManager.PRIVACY_MODE_TRUNCATE
         
         // Default privacy parameters
         private const val DEFAULT_NOISE_RADIUS_METERS = 111.0 // ~111m default noise radius
@@ -81,6 +81,9 @@ class PrivacyManager(private val configurationManager: ConfigurationManager) {
             val noiseLon = Random.nextDouble(-0.001, 0.001)
             location.latitude += noiseLat
             location.longitude += noiseLon
+            // Round to 5 decimal places for realistic GPS precision
+            location.latitude = (location.latitude * 100000.0).roundToInt() / 100000.0
+            location.longitude = (location.longitude * 100000.0).roundToInt() / 100000.0
             return location
         }
 
