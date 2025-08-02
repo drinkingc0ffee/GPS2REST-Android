@@ -1,4 +1,10 @@
+
 package com.coffeebreak.gps2rest
+
+import android.util.Base64
+import org.json.JSONObject
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 
 import android.content.Context
 import android.location.Location
@@ -219,11 +225,7 @@ class GpsService(private val context: Context) {
     }
     
     private suspend fun sendGpsData(location: Location, isRetry: Boolean = false) {
-        val baseUrl = if (configManager.isJwtEnabled()) {
-            "http://your-server.com:8080/api/v2/gps"
-        } else {
-            configManager.getGpsUrl()
-        }
+        val baseUrl = configManager.getGpsUrl()
 
         // Apply privacy protection to location data
         val privacyMode = configManager.getPrivacyMode()
@@ -314,8 +316,35 @@ class GpsService(private val context: Context) {
     }
 
     private fun generateJwtToken(): String {
-        // Implement JWT generation logic here
-        return "mocked.jwt.token" // Replace with actual JWT generation
+        // JWT Header
+        val header = JSONObject()
+        header.put("alg", "HS256")
+        header.put("typ", "JWT")
+
+        // JWT Payload
+        val now = System.currentTimeMillis() / 1000L
+        val payload = JSONObject()
+        payload.put("iat", now)
+        payload.put("exp", now + 5)
+        payload.put("nonce", UUID.randomUUID().toString())
+
+        // Encode header and payload
+        val headerBase64 = Base64.encodeToString(header.toString().toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+        val payloadBase64 = Base64.encodeToString(payload.toString().toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+        val message = "$headerBase64.$payloadBase64"
+
+        // Get secret key from config (derived key from Keystore)
+        val key = configManager.getEncryptionKey()
+        if (key == null) {
+            throw IllegalStateException("JWT key not configured. Please set an 8-digit PIN in the app configuration.")
+        }
+        val hmac = Mac.getInstance("HmacSHA256")
+        val keySpec = SecretKeySpec(key, "HmacSHA256")
+        hmac.init(keySpec)
+        val signatureBytes = hmac.doFinal(message.toByteArray(Charsets.UTF_8))
+        val signatureBase64 = Base64.encodeToString(signatureBytes, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
+
+        return "$headerBase64.$payloadBase64.$signatureBase64"
     }
     
     private fun addStatusMessage(message: String) {

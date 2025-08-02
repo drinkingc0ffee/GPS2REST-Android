@@ -17,7 +17,8 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var testButton: Button
     private lateinit var cancelButton: Button
     private lateinit var encryptionPinEditText: EditText
-    
+    private lateinit var savePinButton: Button
+    private lateinit var pinStatusText: TextView
     // Privacy UI components
     private lateinit var privacyModeRadioGroup: RadioGroup
     private lateinit var randomNoiseRadio: RadioButton
@@ -25,6 +26,9 @@ class ConfigurationActivity : AppCompatActivity() {
     private lateinit var originalRadio: RadioButton
     private lateinit var truncationSpinner: Spinner
     private lateinit var privacyStatusText: TextView
+
+    private var jwtConfigured: Boolean = false
+    private var changePinButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,6 +51,8 @@ class ConfigurationActivity : AppCompatActivity() {
         testButton = findViewById(R.id.testButton)
         cancelButton = findViewById(R.id.cancelButton)
         encryptionPinEditText = findViewById(R.id.encryptionPinEditText)
+        savePinButton = findViewById(R.id.savePinButton)
+        pinStatusText = findViewById(R.id.pinStatusText)
         privacyModeRadioGroup = findViewById(R.id.privacyModeRadioGroup)
         randomNoiseRadio = findViewById(R.id.randomNoiseRadio)
         truncateRadio = findViewById(R.id.truncateRadio)
@@ -60,6 +66,20 @@ class ConfigurationActivity : AppCompatActivity() {
     }
     
     private fun setupClickListeners() {
+        savePinButton.setOnClickListener {
+            val pin = encryptionPinEditText.text.toString().trim()
+            if (pin.length != 8 || !pin.all { it.isDigit() }) {
+                pinStatusText.setTextColor(Color.RED)
+                pinStatusText.text = "PIN must be exactly 8 digits."
+                return@setOnClickListener
+            }
+            val derivedKey = KdfUtil.deriveKeyFromPin(pin)
+            configManager.setEncryptionKey(derivedKey)
+            pinStatusText.setTextColor(Color.GREEN)
+            pinStatusText.text = "PIN set successfully. JWT crypto configured."
+            jwtConfigured = true
+            updatePinUiState()
+        }
         saveButton.setOnClickListener {
             saveConfiguration()
         }
@@ -71,6 +91,17 @@ class ConfigurationActivity : AppCompatActivity() {
         cancelButton.setOnClickListener {
             loadCurrentConfiguration()
             Toast.makeText(this, "Changes discarded", Toast.LENGTH_SHORT).show()
+        }
+        
+        enableJwtCheckBox.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                val key = configManager.getEncryptionKey()
+                if (key != null && key.size == 32) {
+                    // Do not show any message if key is set
+                } else {
+                    Toast.makeText(this, "No JWT key installed. Please enter an 8-digit PIN.", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
     
@@ -153,6 +184,10 @@ class ConfigurationActivity : AppCompatActivity() {
     }
     
     private fun loadCurrentConfiguration() {
+        // Show key status and update UI for JWT config
+        val key = configManager.getEncryptionKey()
+        jwtConfigured = key != null && key.size == 32
+        updatePinUiState()
         val currentUrl = configManager.getGpsUrl()
         urlEditText.setText(currentUrl)
         
@@ -188,23 +223,49 @@ class ConfigurationActivity : AppCompatActivity() {
         }
     }
     
+    private fun updatePinUiState() {
+        val parent = pinStatusText.parent as? LinearLayout
+        if (jwtConfigured) {
+            encryptionPinEditText.visibility = View.GONE
+            savePinButton.visibility = View.GONE
+            pinStatusText.setTextColor(Color.GREEN)
+            pinStatusText.text = "JWT crypto is configured."
+            if (changePinButton == null && parent != null) {
+                changePinButton = Button(this).apply {
+                    id = View.generateViewId()
+                    text = "Change PIN"
+                    setOnClickListener {
+                        encryptionPinEditText.text.clear()
+                        encryptionPinEditText.visibility = View.VISIBLE
+                        savePinButton.visibility = View.VISIBLE
+                        this.visibility = View.GONE
+                        pinStatusText.setTextColor(Color.RED)
+                        pinStatusText.text = "Enter a new 8-digit PIN to update."
+                        jwtConfigured = false
+                    }
+                }
+                val index = parent.indexOfChild(pinStatusText)
+                parent.addView(changePinButton, index + 1)
+            }
+            changePinButton?.visibility = View.VISIBLE
+        } else {
+            encryptionPinEditText.visibility = View.VISIBLE
+            savePinButton.visibility = View.VISIBLE
+            pinStatusText.setTextColor(Color.RED)
+            pinStatusText.text = "PIN not set. Please enter an 8-digit PIN."
+            changePinButton?.visibility = View.GONE
+        }
+    }
+    
     private fun saveConfiguration() {
         val url = urlEditText.text.toString().trim()
         val startOnBoot = startOnBootCheckBox.isChecked
         val enableJwt = enableJwtCheckBox.isChecked
-        val pin = encryptionPinEditText.text.toString().trim()
 
         if (url.isEmpty()) {
             Toast.makeText(this, getString(R.string.url_validation_error), Toast.LENGTH_SHORT).show()
             return
         }
-
-        if (pin.length != 8 || !pin.all { it.isDigit() }) {
-            Toast.makeText(this, "PIN must be exactly 8 digits.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val derivedKey = KdfUtil.deriveKeyFromPin(pin)
-        configManager.setEncryptionKey(derivedKey)
 
         if (configManager.saveGpsUrl(url)) {
             configManager.setStartOnBoot(startOnBoot)

@@ -94,6 +94,7 @@
         android:textSize="14sp"
         android:layout_marginBottom="4dp" />
 
+
     <EditText
         android:id="@+id/encryptionPinEditText"
         android:layout_width="match_parent"
@@ -102,6 +103,23 @@
         android:inputType="numberPassword"
         android:maxLength="8"
         android:importantForAutofill="yes"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/savePinButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save PIN"
+        android:layout_gravity="end"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/pinStatusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="PIN not set"
+        android:textSize="12sp"
+        android:textColor="@android:color/holo_green_dark"
         android:layout_marginBottom="16dp" />
 
     <!-- Privacy settings section -->

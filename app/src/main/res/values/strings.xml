@@ -79,4 +79,10 @@
     <string name="background_location_title">Background Location Permission Required</string>
     <string name="background_location_rationale">GPS2REST-Android needs background location access to continuously track your GPS coordinates even when the app is not visible. Please select \'Allow all the time\' in the next screen for optimal functionality.</string>
     <string name="grant_permission_button">Grant Permission</string>
+    <string name="precision_6_decimal">6 decimals</string>
+    <string name="precision_5_decimal">5 decimals</string>
+    <string name="precision_4_decimal">4 decimals</string>
+    <string name="precision_3_decimal">3 decimals</string>
+    <string name="precision_2_decimal">2 decimals</string>
+    <string name="precision_1_decimal">1 decimal</string>
 </resources>

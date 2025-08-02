@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="truncation_precision_options">
+        <item>@string/precision_6_decimal</item>
+        <item>@string/precision_5_decimal</item>
+        <item>@string/precision_4_decimal</item>
+        <item>@string/precision_3_decimal</item>
+        <item>@string/precision_2_decimal</item>
+        <item>@string/precision_1_decimal</item>
+    </string-array>
+
+    <integer-array name="truncation_precision_values">
+        <item>6</item>
+        <item>5</item>
+        <item>4</item>
+        <item>3</item>
+        <item>2</item>
+        <item>1</item>
+    </integer-array>
+</resources>

@@ -2,13 +2,21 @@ package com.coffeebreak.gps2rest
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import java.security.KeyStore
 import java.security.SecureRandom
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 class ConfigurationManager(context: Context) {
     
     private val sharedPreferences: SharedPreferences = 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val secureRandom = SecureRandom()
+    private val keystoreAlias = "gps2rest_jwt_key"
+    private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
     companion object {
         private const val PREFS_NAME = "gps2rest_config"
@@ -165,12 +173,31 @@ class ConfigurationManager(context: Context) {
         return sharedPreferences.getBoolean(KEY_ENABLE_JWT, false)
     }
 
+    /**
+     * Stores the derived key securely in the Android Keystore.
+     * This will overwrite any existing key with the same alias.
+     */
     fun setEncryptionKey(key: ByteArray) {
-        val encoded = android.util.Base64.encodeToString(key, android.util.Base64.DEFAULT)
-        sharedPreferences.edit().putString("encryption_key", encoded).apply()
+        // Remove any existing key with this alias
+        if (keyStore.containsAlias(keystoreAlias)) {
+            keyStore.deleteEntry(keystoreAlias)
+        }
+        // Store the key as a SecretKey in the Keystore
+        val secretKey = SecretKeySpec(key, "HmacSHA256")
+        val keyEntry = KeyStore.SecretKeyEntry(secretKey)
+        keyStore.setEntry(keystoreAlias, keyEntry, null)
     }
+
+    /**
+     * Retrieves the derived key from the Android Keystore.
+     * Returns null if not set.
+     */
     fun getEncryptionKey(): ByteArray? {
-        val encoded = sharedPreferences.getString("encryption_key", null) ?: return null
-        return android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+        return if (keyStore.containsAlias(keystoreAlias)) {
+            val entry = keyStore.getEntry(keystoreAlias, null) as? KeyStore.SecretKeyEntry
+            entry?.secretKey?.encoded
+        } else {
+            null
+        }
     }
 }
