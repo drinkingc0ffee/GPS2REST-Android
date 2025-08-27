@@ -68,3 +68,8 @@ fastlane/readme.md
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Debug tools and temporary files
+debug_tools/
+device_ids.txt
+
